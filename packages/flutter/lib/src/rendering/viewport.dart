@@ -129,9 +129,20 @@ class RenderViewport extends RenderViewportBase with RenderObjectWithChildMixin<
     RenderBox child,
     Offset paintOffset: Offset.zero,
     Axis scrollDirection: Axis.vertical,
+    ViewportAnchor scrollAnchor: ViewportAnchor.end,
     Painter overlayPainter
-  }) : super(paintOffset, scrollDirection, overlayPainter) {
+  }) : super(paintOffset, scrollDirection, overlayPainter), _scrollAnchor = scrollAnchor {
     this.child = child;
+  }
+
+  ViewportAnchor get scrollAnchor => _scrollAnchor;
+  ViewportAnchor _scrollAnchor;
+  void set scrollAnchor(ViewportAnchor value) {
+    assert(value != null);
+    if (value == _scrollAnchor)
+      return;
+    _scrollAnchor = value;
+    markNeedsPaint();
   }
 
   BoxConstraints _getInnerConstraints(BoxConstraints constraints) {
@@ -196,12 +207,28 @@ class RenderViewport extends RenderViewportBase with RenderObjectWithChildMixin<
     return paintOffset < Offset.zero || !(Offset.zero & size).contains((paintOffset & child.size).bottomRight);
   }
 
+  Offset get _contentExtent {
+    switch (scrollDirection) {
+      case Axis.horizontal:
+        return new Offset(child.size.width, 0.0);
+      case Axis.vertical:
+        return new Offset(0.0, child.size.height);
+    }
+  }
+
   void paint(PaintingContext context, Offset offset) {
     if (child != null) {
       final Offset effectivePaintOffset = _paintOffsetRoundedToIntegerDevicePixels;
 
       void paintContents(PaintingContext context, Offset offset) {
-        context.paintChild(child, offset + effectivePaintOffset);
+        switch (scrollAnchor) {
+          case ViewportAnchor.start:
+            context.paintChild(child, offset + effectivePaintOffset);
+            break;
+          case ViewportAnchor.end:
+            context.paintChild(child, offset - _contentExtent - effectivePaintOffset + new Offset(0.0, size.height));
+            break;
+        }
         _overlayPainter?.paint(context, offset);
       }
 
