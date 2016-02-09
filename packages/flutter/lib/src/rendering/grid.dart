@@ -314,10 +314,12 @@ class RenderGrid extends RenderVirtualViewport<GridParentData> {
     int virtualChildBase: 0,
     int virtualChildCount,
     Offset paintOffset: Offset.zero,
+    Painter overlayPainter,
     LayoutCallback callback
   }) : _delegate = delegate, _virtualChildBase = virtualChildBase, super(
     virtualChildCount: virtualChildCount,
     paintOffset: paintOffset,
+    overlayPainter: overlayPainter,
     callback: callback
   ) {
     assert(delegate != null);
@@ -336,6 +338,11 @@ class RenderGrid extends RenderVirtualViewport<GridParentData> {
       markNeedsLayout();
     }
     _delegate = newDelegate;
+  }
+
+  void set scrollDirection(Axis value) {
+    assert(value == Axis.vertical && "RenderGrid doesn't yet support horizontal scrolling." is String);
+    super.scrollDirection = value;
   }
 
   int get virtualChildCount => super.virtualChildCount ?? childCount;
