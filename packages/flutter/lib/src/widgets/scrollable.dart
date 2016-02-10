@@ -623,7 +623,7 @@ abstract class ScrollableListPainter extends Painter {
 }
 
 /// A general scrollable list for a large number of children that might not all
-/// have the same height. Prefer [ScrollableWidgetList] when all the children
+/// have the same height. Prefer [ScrollableLazyList] when all the children
 /// have the same height because it can use that property to be more efficient.
 /// Prefer [ScrollableViewport] with a single child.
 class ScrollableMixedWidgetList extends Scrollable {
@@ -648,10 +648,10 @@ class ScrollableMixedWidgetList extends Scrollable {
   final Object token;
   final InvalidatorAvailableCallback onInvalidatorAvailable;
 
-  ScrollableMixedWidgetListState createState() => new ScrollableMixedWidgetListState();
+  ScrollableState createState() => new _ScrollableMixedWidgetListState();
 }
 
-class ScrollableMixedWidgetListState extends ScrollableState<ScrollableMixedWidgetList> {
+class _ScrollableMixedWidgetListState extends ScrollableState<ScrollableMixedWidgetList> {
   void initState() {
     super.initState();
     scrollBehavior.updateExtents(
