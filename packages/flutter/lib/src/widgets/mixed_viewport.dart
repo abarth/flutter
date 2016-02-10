@@ -20,6 +20,7 @@ class MixedViewport extends RenderObjectWidget {
   MixedViewport({
     Key key,
     this.startOffset: 0.0,
+    this.scrollAnchor: ViewportAnchor.start,
     this.direction: Axis.vertical,
     this.builder,
     this.token,
@@ -28,6 +29,7 @@ class MixedViewport extends RenderObjectWidget {
   }) : super(key: key);
 
   final double startOffset;
+  final ViewportAnchor scrollAnchor;
   final Axis direction;
   final IndexedBuilder builder;
   final Object token; // change this if the list changed (i.e. there are added, removed, or resorted items)
@@ -139,17 +141,20 @@ class _MixedViewportElement extends RenderObjectElement<MixedViewport> {
 
   void mount(Element parent, dynamic newSlot) {
     super.mount(parent, newSlot);
-    renderObject.callback = layout;
-    renderObject.totalExtentCallback = _noIntrinsicExtent;
-    renderObject.maxCrossAxisExtentCallback = _noIntrinsicExtent;
-    renderObject.minCrossAxisExtentCallback = _noIntrinsicExtent;
+    renderObject
+      ..callback = layout
+      ..scrollAnchor = widget.scrollAnchor
+      ..totalExtentCallback = _noIntrinsicExtent
+      ..maxCrossAxisExtentCallback = _noIntrinsicExtent
+      ..minCrossAxisExtentCallback = _noIntrinsicExtent;
   }
 
   void unmount() {
-    renderObject.callback = null;
-    renderObject.totalExtentCallback = null;
-    renderObject.minCrossAxisExtentCallback = null;
-    renderObject.maxCrossAxisExtentCallback = null;
+    renderObject
+      ..callback = null
+      ..totalExtentCallback = null
+      ..minCrossAxisExtentCallback = null
+      ..maxCrossAxisExtentCallback = null;
     super.unmount();
   }
 
@@ -167,11 +172,13 @@ class _MixedViewportElement extends RenderObjectElement<MixedViewport> {
     return null;
   }
 
-  static const Object _omit = const Object(); // used as a slot when it's not yet time to attach the child
+  static final Object _omit = new Object(); // used as a slot when it's not yet time to attach the child
 
   void update(MixedViewport newWidget) {
     _ChangeDescription changes = newWidget.evaluateChangesFrom(widget);
     super.update(newWidget);
+    renderObject.scrollAnchor = widget.scrollAnchor;
+
     if (changes == _ChangeDescription.resized)
       _resetCache();
     if (changes != _ChangeDescription.none || !isValid) {

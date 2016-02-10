@@ -630,6 +630,7 @@ class ScrollableMixedWidgetList extends Scrollable {
   ScrollableMixedWidgetList({
     Key key,
     double initialScrollOffset,
+    ViewportAnchor scrollAnchor: ViewportAnchor.start,
     ScrollListener onScroll,
     SnapOffsetCallback snapOffsetCallback,
     double snapAlignmentOffset: 0.0,
@@ -639,6 +640,7 @@ class ScrollableMixedWidgetList extends Scrollable {
   }) : super(
     key: key,
     initialScrollOffset: initialScrollOffset,
+    scrollAnchor: scrollAnchor,
     onScroll: onScroll,
     snapOffsetCallback: snapOffsetCallback,
     snapAlignmentOffset: snapAlignmentOffset
@@ -703,6 +705,7 @@ class _ScrollableMixedWidgetListState extends ScrollableState<ScrollableMixedWid
       onSizeChanged: _handleSizeChanged,
       child: new MixedViewport(
         startOffset: scrollOffset,
+        scrollAnchor: config.scrollAnchor,
         builder: config.builder,
         token: config.token,
         onInvalidatorAvailable: config.onInvalidatorAvailable,

@@ -262,6 +262,16 @@ class RenderBlockViewport extends RenderBlockBase {
   bool _inCallback = false;
   bool get isRepaintBoundary => true;
 
+  ViewportAnchor get scrollAnchor => _scrollAnchor;
+  ViewportAnchor _scrollAnchor;
+  void set scrollAnchor(ViewportAnchor value) {
+    assert(value != null);
+    if (value == _scrollAnchor)
+      return;
+    _scrollAnchor = value;
+    markNeedsLayout();
+  }
+
   /// Called during [layout] to determine the block's children.
   ///
   /// Typically the callback will mutate the child list appropriately, for
@@ -345,6 +355,24 @@ class RenderBlockViewport extends RenderBlockBase {
     }
   }
 
+  Offset get _effectivePaintOffset {
+    double offset;
+    switch (scrollAnchor) {
+      case ViewportAnchor.start:
+        offset = startOffset;
+        break;
+      case ViewportAnchor.end:
+        offset = startOffset + (size.height - _mainAxisExtent);
+        break;
+    };
+    switch (scrollDirection) {
+      case Axis.horizontal:
+        return new Offset(offset, 0.0);
+      case Axis.vertical:
+        return new Offset(0.0, offset);
+    }
+  }
+
   double _getIntrinsicDimension(BoxConstraints constraints, ExtentCallback intrinsicCallback, _Constrainer constrainer) {
     assert(!_inCallback);
     double result;
@@ -412,11 +440,7 @@ class RenderBlockViewport extends RenderBlockBase {
   }
 
   void _paintContents(PaintingContext context, Offset offset) {
-    if (isVertical)
-      defaultPaint(context, offset.translate(0.0, startOffset));
-    else
-      defaultPaint(context, offset.translate(startOffset, 0.0));
-
+    defaultPaint(context, _effectivePaintOffset);
     overlayPainter?.paint(context, offset);
   }
 
