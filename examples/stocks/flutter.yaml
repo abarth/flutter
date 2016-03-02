@@ -24,3 +24,9 @@ material-design-icons:
   - name: image/filter_none
   - name: hardware/mouse
   - name: image/gradient
+assets:
+  - assets/MaterialIcons-Regular.ttf
+fonts:
+  - family: 'MaterialIcons'
+    fonts:
+      - asset: assets/MaterialIcons-Regular.ttf

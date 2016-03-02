@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import 'icon.dart';
+import 'icons.dart';
 import 'icon_button.dart';
 import 'icon_theme.dart';
 import 'icon_theme_data.dart';
@@ -87,7 +88,7 @@ class CheckedPopupMenuItem<T> extends PopupMenuItem<T> {
     enabled: enabled,
     child: new ListItem(
       enabled: enabled,
-      left: new Icon(icon: checked ? 'action/done' : null),
+      left: new Icon(icon: checked ? Icons.done : null),
       primary: child
     )
   );
@@ -338,7 +339,7 @@ class _PopupMenuButtonState<T> extends State<PopupMenuButton<T>> {
   Widget build(BuildContext context) {
     if (config.child == null) {
       return new IconButton(
-        icon: 'navigation/more_vert',
+        icon: Icons.more_vert,
         tooltip: config.tooltip,
         onPressed: () { showButtonMenu(context); }
       );

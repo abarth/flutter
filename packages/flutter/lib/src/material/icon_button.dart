@@ -31,7 +31,7 @@ class IconButton extends StatelessComponent {
   }) : super(key: key);
 
   final IconSize size;
-  final String icon;
+  final int icon;
   final IconThemeColor colorTheme;
   final Color color;
 

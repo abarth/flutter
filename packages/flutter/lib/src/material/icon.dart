@@ -35,7 +35,7 @@ class Icon extends StatelessComponent {
   }
 
   final IconSize size;
-  final String icon;
+  final int icon;
   final IconThemeColor colorTheme;
   final Color color;
 
@@ -53,31 +53,12 @@ class Icon extends StatelessComponent {
   }
 
   Widget build(BuildContext context) {
-    final int iconSize = _kIconSize[size];
+    final double iconSize = _kIconSize[size]?.toDouble();
     if (icon == null) {
       return new SizedBox(
-        width: iconSize.toDouble(),
-        height: iconSize.toDouble()
+        width: iconSize,
+        height: iconSize
       );
-    }
-
-    String category = '';
-    String subtype = '';
-    List<String> parts = icon.split('/');
-    if (parts.length == 2) {
-      category = parts[0];
-      subtype = parts[1];
-    }
-    final IconThemeColor iconThemeColor = _getIconThemeColor(context);
-
-    String colorSuffix;
-    switch(iconThemeColor) {
-      case IconThemeColor.black:
-        colorSuffix = "black";
-        break;
-      case IconThemeColor.white:
-        colorSuffix = "white";
-        break;
     }
 
     Color iconColor = color;
@@ -86,7 +67,7 @@ class Icon extends StatelessComponent {
       if (color != null) {
         iconColor = color.withAlpha((iconAlpha * color.opacity).round());
       } else {
-        switch(iconThemeColor) {
+        switch(_getIconThemeColor(context)) {
           case IconThemeColor.black:
             iconColor = Colors.black.withAlpha(iconAlpha);
             break;
@@ -97,11 +78,19 @@ class Icon extends StatelessComponent {
       }
     }
 
-    return new AssetImage(
-      name: '$category/ic_${subtype}_${colorSuffix}_${iconSize}dp.png',
+    return new SizedBox(
       width: iconSize.toDouble(),
       height: iconSize.toDouble(),
-      color: iconColor
+      child: new Center(
+        child: new Text(new String.fromCharCode(icon),
+          style: new TextStyle(
+            inherit: false,
+            color: iconColor,
+            fontSize: iconSize,
+            fontFamily: 'MaterialIcons'
+          )
+        )
+      )
     );
   }
 

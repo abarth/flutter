@@ -28,7 +28,7 @@ class _NotImplementedDialog extends StatelessComponent {
           child: new Row(
             children: <Widget>[
               new Icon(
-                icon: 'device/dvr',
+                icon: Icons.dvr,
                 size: IconSize.s18
               ),
               new Container(
@@ -212,7 +212,7 @@ class StockHomeState extends State<StockHome> {
       center: new Text(StockStrings.of(context).title()),
       right: <Widget>[
         new IconButton(
-          icon: "action/search",
+          icon: Icons.search,
           onPressed: _handleSearchBegin,
           tooltip: 'Search'
         ),
@@ -305,7 +305,7 @@ class StockHomeState extends State<StockHome> {
   Widget buildSearchBar() {
     return new ToolBar(
       left: new IconButton(
-        icon: 'navigation/arrow_back',
+        icon: Icons.arrow_back,
         color: Theme.of(context).accentColor,
         onPressed: _handleSearchEnd,
         tooltip: 'Back'
@@ -330,7 +330,7 @@ class StockHomeState extends State<StockHome> {
   Widget buildFloatingActionButton() {
     return new FloatingActionButton(
       tooltip: 'Create company',
-      child: new Icon(icon: 'content/add'),
+      child: new Icon(icon: Icons.add),
       backgroundColor: Colors.redAccent[200],
       onPressed: _handleCreateCompany
     );
