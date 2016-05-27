@@ -1,0 +1,4 @@
+name: hello_services
+dependencies:
+  flutter:
+    path: ../../../packages/flutter

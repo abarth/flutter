@@ -1,0 +1,10 @@
+Flutter/app.flx
+Flutter/app.so
+Flutter/app.zip
+Flutter/Flutter.framework
+Flutter/Generated.xcconfig
+ui/.packages
+ui/build
+ui/packages
+ui/pubspec.lock
+xcuserdata
