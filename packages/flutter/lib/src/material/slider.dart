@@ -191,7 +191,7 @@ BoxConstraints _getAdditionalConstraints(String label) {
   );
 }
 
-class _RenderSlider extends RenderConstrainedBox {
+class _RenderSlider extends RenderConstrainedBox implements SemanticActionHandler {
   _RenderSlider({
     double value,
     int divisions,
@@ -291,8 +291,10 @@ class _RenderSlider extends RenderConstrainedBox {
     return dragValue;
   }
 
+  bool get isInteractive => onChanged != null;
+
   void _handleDragStart(DragStartDetails details) {
-    if (onChanged != null) {
+    if (isInteractive) {
       _active = true;
       _currentDragValue = (globalToLocal(details.globalPosition).x - _kReactionRadius) / _trackLength;
       onChanged(_discretizedCurrentDragValue);
@@ -302,7 +304,7 @@ class _RenderSlider extends RenderConstrainedBox {
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
-    if (onChanged != null) {
+    if (isInteractive) {
       _currentDragValue += details.primaryDelta / _trackLength;
       onChanged(_discretizedCurrentDragValue);
     }
@@ -322,7 +324,7 @@ class _RenderSlider extends RenderConstrainedBox {
 
   @override
   void handleEvent(PointerEvent event, BoxHitTestEntry entry) {
-    if (event is PointerDownEvent && onChanged != null)
+    if (event is PointerDownEvent && isInteractive)
       _drag.addPointer(event);
   }
 
@@ -331,7 +333,7 @@ class _RenderSlider extends RenderConstrainedBox {
     final Canvas canvas = context.canvas;
 
     final double trackLength = _trackLength;
-    final bool enabled = onChanged != null;
+    final bool enabled = isInteractive;
     final double value = _position.value;
 
     final double additionalHeightForLabel = _getAdditionalHeightForLabel(label);
@@ -417,4 +419,32 @@ class _RenderSlider extends RenderConstrainedBox {
     }
     canvas.drawCircle(thumbCenter, thumbRadius + thumbRadiusDelta, thumbPaint);
   }
+
+  @override
+  bool get hasSemantics => isInteractive;
+
+  @override
+  Iterable<SemanticAnnotator> getSemanticAnnotators() sync* {
+    yield (SemanticsNode semantics) {
+      semantics.canBeScrolledHorizontally = isInteractive;
+    };
+  }
+
+  @override
+  void handleSemanticTap() { }
+
+  @override
+  void handleSemanticLongPress() { }
+
+  @override
+  void handleSemanticScrollLeft() { }
+
+  @override
+  void handleSemanticScrollRight() { }
+
+  @override
+  void handleSemanticScrollUp() { }
+
+  @override
+  void handleSemanticScrollDown() { }
 }

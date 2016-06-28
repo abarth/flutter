@@ -58,6 +58,7 @@ enum _SemanticFlags {
   canBeScrolledVertically,
   hasCheckedState,
   isChecked,
+  isAdjustable,
 }
 
 /// Signature for a function that is called for each [SemanticsNode].
@@ -184,6 +185,9 @@ class SemanticsNode extends AbstractNode {
   /// If this node has Boolean state that can be controlled by the user, whether that state is on or off, cooresponding to `true` and `false`, respectively.
   bool get isChecked => _flags[_SemanticFlags.isChecked];
   set isChecked(bool value) => _setFlag(_SemanticFlags.isChecked, value);
+
+  bool get isAdjustable => _flags[_SemanticFlags.isAdjustable];
+  set isAdjustable(bool value) => _setFlag(_SemanticFlags.isAdjustable, value);
 
   /// A textual description of this node.
   String get label => _label;
@@ -376,6 +380,7 @@ class SemanticsNode extends AbstractNode {
       result.flags.canBeScrolledVertically = canBeScrolledVertically;
       result.flags.hasCheckedState = hasCheckedState;
       result.flags.isChecked = isChecked;
+      result.flags.isAdjustable = isAdjustable;
       result.strings = new mojom.SemanticStrings();
       result.strings.label = label;
       List<mojom.SemanticsNode> children = <mojom.SemanticsNode>[];
@@ -387,6 +392,7 @@ class SemanticsNode extends AbstractNode {
           result.flags.canBeScrolledVertically = result.flags.canBeScrolledVertically || node.canBeScrolledVertically;
           result.flags.hasCheckedState = result.flags.hasCheckedState || node.hasCheckedState;
           result.flags.isChecked = result.flags.isChecked || node.isChecked;
+          result.flags.isAdjustable = result.flags.isAdjustable || node.isAdjustable;
           if (node.label != '')
             result.strings.label = result.strings.label.isNotEmpty ? '${result.strings.label}\n${node.label}' : node.label;
           node._dirty = false;
@@ -518,18 +524,35 @@ class SemanticsNode extends AbstractNode {
 
   @override
   String toString() {
-    return '$runtimeType($_id'
-             '${_dirty ? " (${ _dirtyNodes.contains(this) ? 'dirty' : 'STALE' })" : ""}'
-             '${_shouldMergeAllDescendantsIntoThisNode ? " (leaf merge)" : ""}'
-             '; $rect'
-             '${wasAffectedByClip ? " (clipped)" : ""}'
-             '${canBeTapped ? "; canBeTapped" : ""}'
-             '${canBeLongPressed ? "; canBeLongPressed" : ""}'
-             '${canBeScrolledHorizontally ? "; canBeScrolledHorizontally" : ""}'
-             '${canBeScrolledVertically ? "; canBeScrolledVertically" : ""}'
-             '${hasCheckedState ? (isChecked ? "; checked" : "; unchecked") : ""}'
-             '${label != "" ? "; \"$label\"" : ""}'
-           ')';
+    StringBuffer buffer = new StringBuffer();
+    buffer.write('$runtimeType($_id');
+    if (_dirty)
+      buffer.write(" (${ _dirtyNodes.contains(this) ? 'dirty' : 'STALE' })");
+    if (_shouldMergeAllDescendantsIntoThisNode)
+      buffer.write(' (leaf merge)');
+    buffer.write('; $rect');
+    if (wasAffectedByClip)
+      buffer.write(' (clipped)');
+    if (canBeTapped)
+      buffer.write('; canBeTapped');
+    if (canBeLongPressed)
+      buffer.write('; canBeLongPressed');
+    if (canBeScrolledHorizontally)
+      buffer.write('; canBeScrolledHorizontally');
+    if (canBeScrolledVertically)
+      buffer.write('; canBeScrolledVertically');
+    if (hasCheckedState) {
+      if (isChecked)
+        buffer.write('; checked');
+      else
+        buffer.write('; unchecked');
+    }
+    if (isAdjustable)
+      buffer.write('; isAdjustable');
+    if (label.isNotEmpty)
+      buffer.write('; "$label"');
+    buffer.write(')');
+    return buffer.toString();
   }
 
   /// Returns a string representation of this node and its descendants.

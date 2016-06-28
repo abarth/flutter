@@ -268,9 +268,10 @@ abstract class RenderToggleable extends RenderConstrainedBox implements Semantic
   @override
   Iterable<SemanticAnnotator> getSemanticAnnotators() sync* {
     yield (SemanticsNode semantics) {
-      semantics.hasCheckedState = true;
-      semantics.isChecked = _value;
-      semantics.canBeTapped = isInteractive;
+      semantics
+        ..hasCheckedState = true
+        ..isChecked = _value
+        ..canBeTapped = isInteractive;
     };
   }
 
