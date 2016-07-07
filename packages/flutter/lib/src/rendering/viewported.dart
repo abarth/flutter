@@ -259,3 +259,78 @@ class RenderViewportedList extends RenderViewportedItem with ContainerRenderObje
     offsetConsumed = math.min(currentOffset, constraints.endOffset);
   }
 }
+
+class RenderViewport2 extends RenderBox with RenderObjectWithChildMixin<RenderViewportedItem> {
+  RenderViewport2({
+    Offset paintOffset,
+    Axis mainAxis,
+    RenderViewportedItem child
+  }) {
+    this.child = child;
+  }
+
+  double get startOffset => _startOffset;
+  double _startOffset;
+  set startOffset(double value) {
+    assert(value != null);
+    if (value == _startOffset)
+      return;
+    _startOffset = value;
+    markNeedsPaint();
+  }
+
+  Axis get mainAxis => _mainAxis;
+  Axis _mainAxis;
+  set mainAxis(Axis value) {
+    assert(value != null);
+    if (value == _mainAxis)
+      return;
+    _mainAxis = value;
+    markNeedsLayout();
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) {
+    return 0.0;
+  }
+
+  @override
+  double computeMaxIntrinsicWidth(double height) {
+    return 0.0;
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) {
+    return 0.0;
+  }
+
+  @override
+  double computeMaxIntrinsicHeight(double width) {
+    return 0.0;
+  }
+
+  @override
+  void performLayout() {
+    if (child != null) {
+      ViewportConstraints innerConstraints = new ViewportConstraints(
+        mainAxis: mainAxis,
+        crossAxisExtent: constraints.maxWidth,
+        startOffset: startOffset,
+        endOffset: startOffset + constraints.maxHeight
+      );
+      child.layout(constraints, parentUsesSize: true);
+      size = child.size;
+    } else {
+      performResize();
+    }
+  }
+
+  @override
+  bool hitTestChildren(HitTestResult result, { Point position }) {
+    return false;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+  }
+}
