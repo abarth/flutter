@@ -17,6 +17,7 @@ analyzer:
   language:
     enableStrictCallChecks: true
     enableSuperMixins: true
+    enableAssertInitializer: true
   strong-mode: true
   errors:
     # allow overriding fields (if they use super, ideally...)
