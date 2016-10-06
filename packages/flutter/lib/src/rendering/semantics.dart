@@ -6,7 +6,6 @@ import 'dart:math' as math;
 import 'dart:ui' show Rect, SemanticsAction, SemanticsFlags;
 
 import 'package:flutter_services/semantics.dart' as mojom;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:meta/meta.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -477,59 +476,21 @@ typedef void SemanticsListener(List<mojom.SemanticsNode> nodes);
 /// To listen for semantic updates, call [PipelineOwner.addSemanticsListener],
 /// which will create a [SemanticsOwner] if necessary.
 class SemanticsOwner {
-  /// Creates a [SemanticsOwner].
-  ///
-  /// The `onLastListenerRemoved` argument must not be null and will be called
-  /// when the last listener is removed from this object.
-  SemanticsOwner({
-    @required SemanticsListener initialListener,
-    @required VoidCallback onLastListenerRemoved
-  }) : _onLastListenerRemoved = onLastListenerRemoved {
-    assert(_onLastListenerRemoved != null);
-    addListener(initialListener);
-  }
-
-  final VoidCallback _onLastListenerRemoved;
-
   final Set<SemanticsNode> _dirtyNodes = new Set<SemanticsNode>();
   final Map<int, SemanticsNode> _nodes = <int, SemanticsNode>{};
   final Set<SemanticsNode> _detachedNodes = new Set<SemanticsNode>();
-
-  final List<SemanticsListener> _listeners = <SemanticsListener>[];
 
   /// Releases any resources retained by this object.
   ///
   /// Requires that there are no listeners registered with [addListener].
   void dispose() {
-    assert(_listeners.isEmpty);
     _dirtyNodes.clear();
     _nodes.clear();
     _detachedNodes.clear();
   }
 
-  /// Add a consumer of semantic data.
-  ///
-  /// After the [PipelineOwner] updates the semantic data for a given frame, it
-  /// calls [sendSemanticsTree], which uploads the data to each listener
-  /// registered with this function.
-  ///
-  /// Listeners can be removed with [removeListener].
-  void addListener(SemanticsListener listener) {
-    _listeners.add(listener);
-  }
-
-  /// Removes a consumer of semantic data.
-  ///
-  /// Listeners can be added with [addListener].
-  void removeListener(SemanticsListener listener) {
-    _listeners.remove(listener);
-    if (_listeners.isEmpty)
-      _onLastListenerRemoved();
-  }
-
   /// Uploads the semantics tree to the listeners registered with [addListener].
   void sendSemanticsTree() {
-    assert(_listeners.isNotEmpty);
     for (SemanticsNode oldNode in _detachedNodes) {
       // The other side will have forgotten this node if we even send
       // it again, so make sure to mark it dirty so that it'll get
@@ -592,8 +553,6 @@ class SemanticsOwner {
       if (node._dirty && node.attached)
         updatedNodes.add(node._serialize());
     }
-    for (SemanticsListener listener in new List<SemanticsListener>.from(_listeners))
-      listener(updatedNodes);
     _dirtyNodes.clear();
   }
 

@@ -9,8 +9,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
-import 'package:mojo/core.dart' as core;
-import 'package:flutter_services/semantics.dart' as mojom;
 
 import 'box.dart';
 import 'debug.dart';
@@ -26,14 +24,12 @@ abstract class RendererBinding extends BindingBase implements SchedulerBinding, 
   void initInstances() {
     super.initInstances();
     _instance = this;
-    _pipelineOwner = new PipelineOwner(
-      onNeedVisualUpdate: ensureVisualUpdate,
-      onScheduleInitialSemantics: _scheduleInitialSemantics,
-      onClearSemantics: _clearSemantics,
-    );
+    _pipelineOwner = new PipelineOwner(onNeedVisualUpdate: ensureVisualUpdate);
     ui.window.onMetricsChanged = handleMetricsChanged;
+    ui.window.onSemanticsEnabledChanged = _handleSemanticsEnabledChanged;
+    ui.window.onSemanticsAction = _handleSemanticsAction;
     initRenderView();
-    initSemantics();
+    _handleSemanticsEnabledChanged();
     assert(renderView != null);
     addPersistentFrameCallback(_handlePersistentFrameCallback);
   }
@@ -134,18 +130,20 @@ abstract class RendererBinding extends BindingBase implements SchedulerBinding, 
     );
   }
 
-  /// Prepares the rendering library to handle semantics requests from the engine.
-  ///
-  /// Called automatically when the binding is created.
-  void initSemantics() {
-    shell.provideService(mojom.SemanticsServer.serviceName, (core.MojoMessagePipeEndpoint endpoint) {
-      mojom.SemanticsServerStub stub = new mojom.SemanticsServerStub.fromEndpoint(endpoint);
-      SemanticsServer server = new SemanticsServer(pipelineOwner);
-      stub.impl = server;
-      stub.ctrl.onError = (_) {
-        server.dispose();
-      };
-    });
+  void _handleSemanticsEnabledChanged() {
+    if (ui.window.semanticsEnabled) {
+      if (_pipelineOwner.semanticsOwner == null) {
+        _pipelineOwner.semanticsOwner = new SemanticsOwner();
+        renderView.scheduleInitialSemantics();
+      }
+    } else if (_pipelineOwner.semanticsOwner != _pipelineOwner.semanticsOwner) {
+      _pipelineOwner.semanticsOwner = null;
+      renderView.clearSemantics();
+    }
+  }
+
+  void _handleSemanticsAction(int id, SemanticsAction action) {
+    _pipelineOwner.semanticsOwner?.performAction(id, action);
   }
 
   void _handlePersistentFrameCallback(Duration timeStamp) {
@@ -234,14 +232,6 @@ abstract class RendererBinding extends BindingBase implements SchedulerBinding, 
     };
     instance?.renderView?.visitChildren(visitor);
   }
-
-  void _scheduleInitialSemantics() {
-    renderView.scheduleInitialSemantics();
-  }
-
-  void _clearSemantics() {
-    renderView.clearSemantics();
-  }
 }
 
 /// Prints a textual representation of the entire render tree.
@@ -259,44 +249,6 @@ void debugDumpLayerTree() {
 /// Otherwise, the tree is empty and this will print "null".
 void debugDumpSemanticsTree() {
   debugPrint(RendererBinding.instance?.renderView?.debugSemantics?.toStringDeep() ?? 'Semantics not collected.');
-}
-
-/// Exposes the [SemanticsNode] tree to the underlying platform.
-class SemanticsServer extends mojom.SemanticsServer {
-  /// Creates a semantics server that listens to semantic informationa about the
-  /// given [PipelineOwner].
-  ///
-  /// Call [dispose] to stop listening for semantic updates.
-  SemanticsServer(PipelineOwner pipelineOwner) {
-    _semanticsOwner = pipelineOwner.addSemanticsListener(_updateSemanticsTree);
-  }
-
-  SemanticsOwner _semanticsOwner;
-  final List<mojom.SemanticsListenerProxy> _listeners = <mojom.SemanticsListenerProxy>[];
-
-  /// Stops listening for semantic updates and closes all outstanding listeners.
-  void dispose() {
-    for (mojom.SemanticsListenerProxy listener in _listeners)
-      listener.close();
-    _listeners.clear();
-    _semanticsOwner.removeListener(_updateSemanticsTree);
-    _semanticsOwner = null;
-  }
-
-  void _updateSemanticsTree(List<mojom.SemanticsNode> nodes) {
-    for (mojom.SemanticsListenerProxy listener in _listeners)
-      listener.updateSemanticsTree(nodes);
-  }
-
-  @override
-  void addSemanticsListener(mojom.SemanticsListenerProxy listener) {
-    _listeners.add(listener);
-  }
-
-  @override
-  void performAction(int id, mojom.SemanticAction encodedAction) {
-    _semanticsOwner.performAction(id, SemanticsAction.values[encodedAction.mojoEnumValue]);
-  }
 }
 
 /// A concrete binding for applications that use the Rendering framework

@@ -769,8 +769,6 @@ class PipelineOwner {
   /// through the rendering pipeline.
   PipelineOwner({
     this.onNeedVisualUpdate,
-    this.onScheduleInitialSemantics,
-    this.onClearSemantics,
   });
 
   /// Called when a render object associated with this pipeline owner wishes to
@@ -781,21 +779,6 @@ class PipelineOwner {
   /// times in quick succession. Implementations should take care to discard
   /// duplicate calls quickly.
   final VoidCallback onNeedVisualUpdate;
-
-  /// Called when [addSemanticsListener] is called when there was no
-  /// [SemanticsOwner] present, to request that the
-  /// [RenderObject.scheduleInitialSemantics] method be called on the
-  /// appropriate object(s).
-  ///
-  /// For example, the [RendererBinding] calls it on the [RenderView] object.
-  final VoidCallback onScheduleInitialSemantics;
-
-  /// Called when the last [SemanticsListener] is removed from the
-  /// [SemanticsOwner], to request that the [RenderObject.clearSemantics] method
-  /// be called on the appropriate object(s).
-  ///
-  /// For example, the [RendererBinding] calls it on the [RenderView] object.
-  final VoidCallback onClearSemantics;
 
   /// Calls [onNeedVisualUpdate] if [onNeedVisualUpdate] is not null.
   ///
@@ -817,32 +800,6 @@ class PipelineOwner {
     _rootNode?.detach();
     _rootNode = value;
     _rootNode?.attach(this);
-  }
-
-  /// Calls the given listener whenever the semantics of the render tree change.
-  ///
-  /// Creates [semanticsOwner] if necessary.
-  SemanticsOwner addSemanticsListener(SemanticsListener listener) {
-    if (_semanticsOwner == null) {
-      _semanticsOwner = new SemanticsOwner(
-        initialListener: listener,
-        onLastListenerRemoved: _handleLastSemanticsListenerRemoved
-      );
-      if (onScheduleInitialSemantics != null)
-        onScheduleInitialSemantics();
-    } else {
-      _semanticsOwner.addListener(listener);
-    }
-    assert(_semanticsOwner != null);
-    return _semanticsOwner;
-  }
-
-  void _handleLastSemanticsListenerRemoved() {
-    assert(!_debugDoingSemantics);
-    if (onClearSemantics != null)
-      onClearSemantics();
-    _semanticsOwner.dispose();
-    _semanticsOwner = null;
   }
 
   List<RenderObject> _nodesNeedingLayout = <RenderObject>[];
@@ -965,6 +922,11 @@ class PipelineOwner {
   /// relating to semantics.
   SemanticsOwner get semanticsOwner => _semanticsOwner;
   SemanticsOwner _semanticsOwner;
+  set semanticsOwner(SemanticsOwner newOwner) {
+    _semanticsOwner?.dispose();
+    _semanticsOwner = newOwner;
+  }
+
   bool _debugDoingSemantics = false;
   final List<RenderObject> _nodesNeedingSemantics = <RenderObject>[];
 
@@ -1996,11 +1958,9 @@ abstract class RenderObject extends AbstractNode implements HitTestTarget {
 
   /// Removes all semantics from this render object and its descendants.
   ///
-  /// Should only be called in response to the [PipelineOwner] calling its
-  /// [PipelineOwner.onClearSemantics] callback.
-  ///
   /// Should only be called on objects whose [parent] is not a [RenderObject].
   void clearSemantics() {
+    assert(parent is! RenderObject);
     _needsSemanticsUpdate = true;
     _needsSemanticsGeometryUpdate = true;
     _semantics = null;
