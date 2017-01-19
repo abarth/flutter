@@ -86,7 +86,7 @@ void main() {
 
     testUsingContext('returns 1 when app fails to run', () async {
       withMockDevice();
-      appStarter = expectAsync((_) async => 1);
+      appStarter = expectAsync1((_) async => 1);
 
       String testApp = '/some/app/test_driver/e2e.dart';
       String testFile = '/some/app/test_driver/e2e_test.dart';
@@ -155,14 +155,14 @@ void main() {
       String testApp = '/some/app/test/e2e.dart';
       String testFile = '/some/app/test_driver/e2e_test.dart';
 
-      appStarter = expectAsync((_) {
+      appStarter = expectAsync1((_) {
         return new Future<int>.value(0);
       });
-      testRunner = expectAsync((List<String> testArgs) {
+      testRunner = expectAsync1((List<String> testArgs) {
         expect(testArgs, <String>[testFile]);
-        return new Future<int>.value(0);
+        return new Future<Null>.value();
       });
-      appStopper = expectAsync((_) {
+      appStopper = expectAsync1((_) {
         return new Future<int>.value(0);
       });
 
@@ -186,13 +186,13 @@ void main() {
       String testApp = '/some/app/test/e2e.dart';
       String testFile = '/some/app/test_driver/e2e_test.dart';
 
-      appStarter = expectAsync((_) {
+      appStarter = expectAsync1((_) {
         return new Future<int>.value(0);
       });
       testRunner = (_) {
         throwToolExit(null, exitCode: 123);
       };
-      appStopper = expectAsync((_) {
+      appStopper = expectAsync1((_) {
         return new Future<int>.value(0);
       });
 
