@@ -83,11 +83,14 @@ class FlutterPlatform extends PlatformPlugin {
 
       // If we are collecting coverage data, then set that up now.
       int observatoryPort;
+      CoverageLock lock;
       if (CoverageCollector.instance.enabled) {
         // TODO(ianh): the random number on the next line is a landmine that will eventually
         // cause a hard-to-find bug...
         observatoryPort = CoverageCollector.instance.observatoryPort ?? new math.Random().nextInt(30000) + 2000;
-        await CoverageCollector.instance.finishPendingTasks();
+        printTrace('waiting for acquire coverage collection lock');
+        lock = new CoverageLock(CoverageCollector.instance);
+        await lock.acquire();
       }
 
       // Start the engine subprocess.
@@ -108,12 +111,6 @@ class FlutterPlatform extends PlatformPlugin {
           controller.sink.addError(message);
         }
       });
-
-      CoverageCollectionTask coverageTask = CoverageCollector.instance.addTask(
-        host: _kHost.address,
-        port: observatoryPort,
-        processToKill: process, // This kills the subprocess whether coverage is enabled or not.
-      );
 
       // Pipe stdout and stderr from the subprocess to our printStatus console.
       _pipeStandardStreamsToConsole(process);
@@ -187,7 +184,16 @@ class FlutterPlatform extends PlatformPlugin {
           break;
       }
 
-      coverageTask.start();
+      if (CoverageCollector.instance.enabled) {
+        await CoverageCollector.instance.collectCoverageData(
+          lock: lock,
+          host: _kHost.address,
+          port: observatoryPort,
+          processToKill: process, // This kills the subprocess whether coverage is enabled or not.
+        );
+      } else {
+        process.kill();
+      }
       subprocessActive = false;
     } catch (e, stack) {
       if (!controllerSinkClosed) {

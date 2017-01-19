@@ -87,11 +87,9 @@ class TestCommand extends FlutterCommand {
     }
   }
 
-  Future<bool> _collectCoverageData(CoverageCollector collector, { bool mergeCoverageData: false }) async {
+  Future<bool> _formatCoverageData(CoverageCollector collector, { bool mergeCoverageData: false }) async {
     Status status = logger.startProgress('Collecting coverage information...');
-    String coverageData = await collector.finalizeCoverage(
-      timeout: new Duration(seconds: 30),
-    );
+    String coverageData = await collector.formatCoverageData();
     status.stop();
     if (coverageData == null)
       return false;
@@ -180,7 +178,7 @@ class TestCommand extends FlutterCommand {
     int result = await _runTests(testArgs, testDir);
 
     if (collector.enabled) {
-      if (!await _collectCoverageData(collector, mergeCoverageData: argResults['merge-coverage']))
+      if (!await _formatCoverageData(collector, mergeCoverageData: argResults['merge-coverage']))
         throwToolExit(null);
     }
 
