@@ -1322,8 +1322,90 @@ abstract class RenderViewportBase2<ParentDataClass extends ContainerParentDataMi
 
   @override
   double getOffsetToReveal(RenderObject descendant, double alignment) {
-    // TODO(abath): Implement this function for sliver-based viewports.
+    // double _accumulateScrollOffsetToPivot(RenderBox pivot, RenderBox target, AxisDirection effectiveAxisDirection) {
+    //   if (pivot == target)
+    //     return 0.0;
+    //   final Matrix4 transform = target.getTransformTo(pivot);
+    //   final Rect bounds = MatrixUtils.transformRect(transform, target.paintBounds);
+    //   assert(effectiveAxisDirection != null);
+    //   switch (effectiveAxisDirection) {
+    //     case AxisDirection.up:
+    //       return pivot.size.height - bounds.bottom;
+    //     case AxisDirection.right:
+    //       return bounds.left;
+    //     case AxisDirection.down:
+    //       return bounds.top;
+    //     case AxisDirection.left:
+    //       return pivot.size.width - bounds.right;
+    //   }
+    //   return 0.0;
+    // }
+
+    if (descendant is RenderBox) {
+      final RenderBox target = descendant;
+
+      // The pivot will be the topmost box before we get into sliver world.
+      RenderBox pivot = target;
+      while (pivot.parent is RenderBox)
+        pivot = pivot.parent;
+
+      assert(pivot.parent != null);
+      assert(pivot.parent != this);
+      assert(pivot != this);
+
+      final Matrix4 transform = target.getTransformTo(pivot);
+      final Rect boundsInPivot = MatrixUtils.transformRect(transform, target.paintBounds);
+
+      // The child will be the topmost object before we get to the viewport.
+      RenderObject child = pivot;
+      double pivotToChild = 0.0;
+      while (child.parent is RenderSliver) {
+        final RenderSliver parent = child.parent;
+        pivotToChild += parent.childScrollOffset(child);
+        child = parent;
+      }
+
+      double leading;
+      double trailing;
+
+      assert(child.parent == this);
+      assert(child is RenderSliver);
+      final RenderSliver sliver = child;
+      final GrowthDirection growthDirection = sliver.constraints.growthDirection;
+      switch (applyGrowthDirectionToAxisDirection(axisDirection, growthDirection)) {
+        case AxisDirection.up:
+          break;
+        case AxisDirection.right:
+          break;
+        case AxisDirection.down:
+          // viewportExtent = size.height;
+          leading = boundsInPivot.top + pivotToChild;
+          trailing = boundsInPivot.bottom + pivotToChild;
+          break;
+        case AxisDirection.left:
+          break;
+      }
+    }
+
+
     return 0.0;
+    //   if (pivot != viewport && pivot.parent is RenderSliver) {
+    //     assert(viewport is RenderViewport2);
+    //     scrollOffset += _accumulateScrollOffsetToViewport(pivot, viewport);
+    //   }
+    //
+    //   if (scrollOffset >= 0.0)
+    //     scrollOffset += _accumulateScrollOffsetToPivot(pivot, object, viewport.axisDirection);
+    //   else
+    //     scrollOffset -= _accumulateScrollOffsetToPivot(pivot, object, flipAxisDirection(viewport.axisDirection));
+    // }
+
+
+  }
+
+  double childScrollOffset(RenderSliver child) {
+    final SliverLogicalParentData parentData = child.parentData;
+    return parentData.scrollOffset;
   }
 
   @protected
