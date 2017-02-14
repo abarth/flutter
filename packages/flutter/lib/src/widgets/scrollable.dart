@@ -372,14 +372,7 @@ typedef double SnapOffsetCallback(double scrollOffset, Size containerSize);
 
 /// A base class for scrollable widgets.
 ///
-/// If you have a list of widgets and want them to be able to scroll if there is
-/// insufficient room, consider using [Block].
-///
-/// Commonly used classes that are based on Scrollable include [ScrollableList]
-/// and [ScrollableViewport].
-///
-/// Widgets that subclass [Scrollable] typically use state objects that subclass
-/// [ScrollableState].
+/// This class will be removed soon but is not yet formally deprecated.
 class Scrollable extends StatefulWidget {
   /// Initializes fields for subclasses.
   ///
@@ -1246,6 +1239,7 @@ class ScrollNotification extends Notification {
 ///  * [ScrollableList], if you have many identically-sized children.
 ///  * [GridView], if your children are in a grid pattern.
 ///  * [LazyBlock], if you have many children of varying sizes.
+@Deprecated('use SingleChildScrollView')
 class ScrollableViewport extends StatelessWidget {
   /// Creates a simple scrolling widget that has a single child.
   ///
@@ -1371,14 +1365,12 @@ class ScrollableViewport extends StatelessWidget {
 /// or [ScrollableList] (if the children all have the same fixed height), as
 /// they avoid doing work for children that are not visible.
 ///
-/// This widget is implemented using [ScrollableViewport] and [BlockBody]. If
-/// you have a single child, consider using [ScrollableViewport] directly.
+/// If you have a single child, consider using [SingleChildScrollView] directly.
 ///
 /// See also:
 ///
-///  * [LazyBlock], if you have many children with varying heights.
-///  * [ScrollableList], if all your children are the same height.
-///  * [ScrollableViewport], if you only have one child.
+///  * [ListView], which is more efficient for large numbers of children.
+///  * [SingleChildScrollView], if you only have one child.
 class Block extends StatelessWidget {
   /// Creates a scrollable array of children.
   Block({
@@ -1448,7 +1440,7 @@ class Block extends StatelessWidget {
     Widget contents = new BlockBody(children: children, mainAxis: scrollDirection);
     if (padding != null)
       contents = new Padding(padding: padding, child: contents);
-    return new ScrollableViewport(
+    return new ScrollableViewport(  // ignore: DEPRECATED_MEMBER_USE
       scrollableKey: scrollableKey,
       initialScrollOffset: initialScrollOffset,
       scrollDirection: scrollDirection,
