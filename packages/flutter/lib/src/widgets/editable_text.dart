@@ -37,71 +37,31 @@ TextEditingValue _getTextEditingValueFromInputValue(InputValue value) {
   );
 }
 
-/// Configuration information for a text input field.
-///
-/// An [InputValue] contains the text for the input field as well as the
-/// selection extent and the composing range.
-class InputValue {
-  // TODO(abarth): This class is really the same as TextEditingState.
-  // We should merge them into one object.
+class TextEditingController extends ChangeNotifier {
+  TextEditingController({
+    value: TextEditingValue.empty,
+  }) : _value = value;
 
-  /// Creates configuration information for an input field
-  ///
-  /// The selection and composing range must be within the text.
-  ///
-  /// The [text], [selection], and [composing] arguments must not be null but
-  /// each have default values.
-  const InputValue({
-    this.text: '',
-    this.selection: const TextSelection.collapsed(offset: -1),
-    this.composing: TextRange.empty
-  });
+  TextEditingController.text(String text)
+    : _value = new TextEditingValue(text: text);
 
-  /// The current text being edited.
-  final String text;
-
-  /// The range of text that is currently selected.
-  final TextSelection selection;
-
-  /// The range of text that is still being composed.
-  final TextRange composing;
-
-  /// An input value that corresponds to the empty string with no selection and no composing range.
-  static const InputValue empty = const InputValue();
-
-  @override
-  String toString() => '$runtimeType(text: \u2524$text\u251C, selection: $selection, composing: $composing)';
-
-  @override
-  bool operator ==(dynamic other) {
-    if (identical(this, other))
-      return true;
-    if (other is! InputValue)
-      return false;
-    final InputValue typedOther = other;
-    return typedOther.text == text
-        && typedOther.selection == selection
-        && typedOther.composing == composing;
+  TextEditingValue get value => _value;
+  TextEditingValue _value;
+  set value(TextEditingValue newValue) {
+    if (_value == newValue)
+      return;
+    _value = newValue;
+    notifyListeners();
   }
 
-  @override
-  int get hashCode => hashValues(
-    text.hashCode,
-    selection.hashCode,
-    composing.hashCode
-  );
+  String get text => _value.text;
+  set text(String value) {
+    value = value.copyWith(text: text);
+  }
 
-  /// Creates a copy of this input value but with the given fields replaced with the new values.
-  InputValue copyWith({
-    String text,
-    TextSelection selection,
-    TextRange composing
-  }) {
-    return new InputValue (
-      text: text ?? this.text,
-      selection: selection ?? this.selection,
-      composing: composing ?? this.composing
-    );
+  TextSelection get selection => _value.selection;
+  set selection(TextSelection value) {
+    value = value.copyWith(selection: selection);
   }
 }
 
