@@ -4,6 +4,7 @@
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:meta/meta.dart';
 
 import 'colors.dart';
 import 'debug.dart';
@@ -43,7 +44,7 @@ class InputField extends StatefulWidget {
   InputField({
     Key key,
     this.focusKey,
-    this.controller,
+    @required this.controller,
     this.keyboardType: TextInputType.text,
     this.hintText,
     this.style,
@@ -151,7 +152,8 @@ class _InputFieldState extends State<InputField> {
       ),
     ];
 
-    final bool isEmpty = (config.controller?.text ?? '').isEmpty;
+    // xyzzy: breaks down when controller updates
+    final bool isEmpty = (_controller?.text ?? '').isEmpty;
     if (config.hintText != null && isEmpty) {
       final TextStyle hintStyle = config.hintStyle ??
         textStyle.copyWith(color: themeData.hintColor);
@@ -429,7 +431,7 @@ class Input extends StatefulWidget {
   // InputContainer, TextField, InputField.
   Input({
     Key key,
-    this.controller,
+    @required this.controller,
     this.keyboardType: TextInputType.text,
     this.icon,
     this.labelText,
@@ -633,7 +635,7 @@ class _InputState extends State<Input> {
 ///     ),
 ///  )
 /// ```
-class TextField extends FormField<String> {
+class TextField extends StatefulWidget {
   TextField({
     Key key,
     TextEditingController controller,
@@ -651,32 +653,52 @@ class TextField extends FormField<String> {
     FormFieldValidator<String> validator,
     ValueChanged<String> onChanged,
   }) : super(
-    key: key,
-    initialValue: controller?.text ?? '',
-    onSaved: onSaved,
-    validator: validator,
-    builder: (FormFieldState<String> field) {
-      return new Input(
-        key: focusKey,
-        controller: controller,
-        keyboardType: keyboardType,
-        icon: icon,
-        labelText: labelText,
-        hintText: hintText,
-        style: style,
-        obscureText: obscureText,
-        isDense: isDense,
-        autofocus: autofocus,
-        maxLines: maxLines,
-        onChanged: (String text) {
-          field.onChanged(text);
-          if (onChanged != null)
-            onChanged(text);
-        },
-        errorText: field.errorText,
-      );
-    },
   );
+}
+
+class _TextFieldState extends State<TextField> {
+  @override
+  void initState() {
+    super.initState();
+    _controller = config.controller ?? new TextEditingController();
+  }
+
+
+  void didUpdateConfig(InputField oldConfig) {
+    if (config.controller != oldConfig.controller)
+      _controller = config.controller ?? new TextEditingController();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return new FormField<String>(
+      key: key,
+      initialValue: controller?.text ?? '',
+      onSaved: config.onSaved,
+      validator: config.validator,
+      builder: (FormFieldState<String> field) {
+        return new Input(
+          key: config.focusKey,
+          controller: _controller,
+          keyboardType: config.keyboardType,
+          icon: config.icon,
+          labelText: config.labelText,
+          hintText: config.hintText,
+          style: config.style,
+          obscureText: config.obscureText,
+          isDense: config.isDense,
+          autofocus: config.autofocus,
+          maxLines: config.maxLines,
+          onChanged: (String text) {
+            field.onChanged(text);
+            if (config.onChanged != null)
+              config.onChanged(text);
+          },
+          errorText: field.errorText,
+        );
+      },
+    );
+  }
 }
 
 // Helper widget to smoothly animate the labelText of an Input, as it

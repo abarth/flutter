@@ -40,12 +40,18 @@ void main() {
 
   testWidgets('Focus handling', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
+    final TextEditingController controller = new TextEditingController();
+
     await tester.pumpWidget(new MaterialApp(
       home: new Material(
         child: new Center(
-          child: new Input(key: inputKey, autofocus: true)
-        )
-      )
+          child: new Input(
+            key: inputKey,
+            controller: controller,
+            autofocus: true,
+          ),
+        ),
+      ),
     ));
 
     expect(Focus.at(inputKey.currentContext), isTrue);

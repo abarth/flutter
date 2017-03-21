@@ -77,7 +77,7 @@ class EditableText extends StatefulWidget {
   /// Creates a basic text input control.
   EditableText({
     Key key,
-    this.controller,
+    @required this.controller,
     @required this.focusKey,
     this.obscureText: false,
     @required this.style,
@@ -91,6 +91,7 @@ class EditableText extends StatefulWidget {
     this.onChanged,
     this.onSubmitted,
   }) : super(key: key) {
+    assert(controller != null);
     assert(focusKey != null);
     assert(obscureText != null);
     assert(style != null);
@@ -162,7 +163,6 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
   TextInputConnection _textInputConnection;
   TextSelectionOverlay _selectionOverlay;
 
-  TextEditingController _controller;
   final ScrollController _scrollController = new ScrollController();
 
   // State lifecycle:
@@ -170,24 +170,22 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
   @override
   void initState() {
     super.initState();
-    _controller = config.controller ?? new TextEditingController();
-    _controller.addListener(_didChangeTextEditingValue);
+    config.controller.addListener(_didChangeTextEditingValue);
   }
 
   @override
   void didUpdateConfig(EditableText oldConfig) {
     if (config.controller != oldConfig.controller) {
-      _controller.removeListener(_didChangeTextEditingValue);
-      _controller = config.controller ?? new TextEditingController();
-      _controller.addListener(_didChangeTextEditingValue);
+      oldConfig.controller.removeListener(_didChangeTextEditingValue);
+      config.controller.addListener(_didChangeTextEditingValue);
       if (_isAttachedToKeyboard)
-        _textInputConnection.setEditingState(_controller.value);
+        _textInputConnection.setEditingState(_value);
     }
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_didChangeTextEditingValue);
+    config.controller.removeListener(_didChangeTextEditingValue);
     if (_isAttachedToKeyboard) {
       _textInputConnection.close();
       _textInputConnection = null;
@@ -205,23 +203,28 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
 
   @override
   void updateEditingValue(TextEditingValue value) {
-    if (value.text != _controller.value.text)
+    if (value.text != _value.text)
       _hideSelectionOverlayIfNeeded();
-    _controller.value = value;
+    _value = value;
     if (config.onChanged != null)
       config.onChanged(value.text);
   }
 
   @override
   void performAction(TextInputAction action) {
-    _controller.clearComposing();
+    config.controller.clearComposing();
     Focus.clear(context);
     if (config.onSubmitted != null)
-      config.onSubmitted(_controller.value.text);
+      config.onSubmitted(_value.text);
+  }
+
+  TextEditingValue get _value => config.controller.value;
+  set _value(TextEditingValue value) {
+    config.controller.value = value;
   }
 
   void _didChangeTextEditingValue() {
-    setState(() { /* We use _controller.value in build(). */ });
+    setState(() { /* We use config.controller.value in build(). */ });
   }
 
   bool get _isAttachedToKeyboard => _textInputConnection != null && _textInputConnection.attached;
@@ -248,14 +251,14 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
   void _attachOrDetachKeyboard(bool focused) {
     if (focused && !_isAttachedToKeyboard && (_requestingFocus || config.autofocus)) {
       _textInputConnection = TextInput.attach(this, new TextInputConfiguration(inputType: config.keyboardType))
-        ..setEditingState(_controller.value)
+        ..setEditingState(_value)
         ..show();
     } else if (!focused) {
       if (_isAttachedToKeyboard) {
         _textInputConnection.close();
         _textInputConnection = null;
       }
-      _controller.clearComposing();
+      config.controller.clearComposing();
     }
     _requestingFocus = false;
   }
@@ -288,18 +291,18 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
     // EditableWidget, not just changes triggered by user gestures.
     requestKeyboard();
     _hideSelectionOverlayIfNeeded();
-    _controller.selection = selection;
+    config.controller.selection = selection;
 
     if (config.selectionControls != null) {
       _selectionOverlay = new TextSelectionOverlay(
         context: context,
-        value: _controller.value,
+        value: _value,
         debugRequiredFor: config,
         renderObject: renderObject,
         onSelectionOverlayChanged: _handleSelectionOverlayChanged,
         selectionControls: config.selectionControls,
       );
-      if (_controller.value.text.isNotEmpty || longPress)
+      if (_value.text.isNotEmpty || longPress)
         _selectionOverlay.showHandles();
       if (longPress)
         _selectionOverlay.showToolbar();
@@ -308,7 +311,7 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
 
   void _handleSelectionOverlayChanged(TextEditingValue value, Rect caretRect) {
     assert(!value.composing.isValid);  // composing range must be empty while selecting
-    _controller.value = value;
+    _value = value;
     _scrollController.jumpTo(_getScrollOffsetForCaret(caretRect));
   }
 
@@ -343,14 +346,14 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
     final bool focused = Focus.at(config.focusKey.currentContext);
     _attachOrDetachKeyboard(focused);
 
-    if (_cursorTimer == null && focused && _controller.value.selection.isCollapsed)
+    if (_cursorTimer == null && focused && _value.selection.isCollapsed)
       _startCursorTimer();
-    else if (_cursorTimer != null && (!focused || !_controller.value.selection.isCollapsed))
+    else if (_cursorTimer != null && (!focused || !_value.selection.isCollapsed))
       _stopCursorTimer();
 
     if (_selectionOverlay != null) {
       if (focused) {
-        _selectionOverlay.update(_controller.value);
+        _selectionOverlay.update(_value);
       } else {
         _selectionOverlay.dispose();
         _selectionOverlay = null;
@@ -363,7 +366,7 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
       physics: const ClampingScrollPhysics(),
       viewportBuilder: (BuildContext context, ViewportOffset offset) {
         return new _Editable(
-          value: _controller.value,
+          value: _value,
           style: config.style,
           cursorColor: config.cursorColor,
           showCursor: _showCursor,

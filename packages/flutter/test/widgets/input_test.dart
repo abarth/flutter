@@ -117,12 +117,14 @@ void main() {
 
   testWidgets('Cursor blinks', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Center(
         child: new Material(
           child: new Input(
             key: inputKey,
+            controller: controller,
             hintText: 'Placeholder'
           )
         )
@@ -166,7 +168,7 @@ void main() {
     Widget builder() {
       return new Center(
         child: new Material(
-          child: new Input(
+          child: new TextField(
             key: inputKey,
             obscureText: true,
             hintText: 'Placeholder'
@@ -724,6 +726,8 @@ void main() {
   });
 
   testWidgets('InputField with default hintStyle', (WidgetTester tester) async {
+    final TextEditingController controller = new TextEditingController();
+
     final TextStyle textStyle = new TextStyle(
       color: Colors.pink[500],
       fontSize: 10.0,
@@ -738,6 +742,7 @@ void main() {
           data: themeData,
           child: new Material(
             child: new InputField(
+              controller: controller,
               hintText: 'Placeholder',
               style: textStyle,
             ),
@@ -754,6 +759,8 @@ void main() {
   });
 
   testWidgets('InputField with specified hintStyle', (WidgetTester tester) async {
+    final TextEditingController controller = new TextEditingController();
+
     final TextStyle hintStyle = new TextStyle(
       color: Colors.pink[500],
       fontSize: 10.0,
@@ -763,6 +770,7 @@ void main() {
       return new Center(
         child: new Material(
           child: new InputField(
+            controller: controller,
             hintText: 'Placeholder',
             hintStyle: hintStyle,
           ),
@@ -787,10 +795,10 @@ void main() {
             key: focusKey,
             child: new Column(
               children: <Widget>[
-                new Input(
+                new TextField(
                   labelText: 'First'
                 ),
-                new Input(
+                new TextField(
                   key: inputKey,
                   labelText: 'Second'
                 ),
@@ -825,7 +833,7 @@ void main() {
     await tester.pumpWidget(
       new Center(
         child: new Material(
-          child: new Input(
+          child: new TextField(
             icon: new Icon(Icons.phone),
             labelText: 'label',
           ),
