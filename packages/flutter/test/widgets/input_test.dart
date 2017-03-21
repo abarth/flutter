@@ -76,16 +76,15 @@ void main() {
 
   testWidgets('Editable text has consistent size', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Center(
         child: new Material(
           child: new Input(
-            value: inputValue,
             key: inputKey,
+            controller: controller,
             hintText: 'Placeholder',
-            onChanged: (InputValue value) { inputValue = value; }
           )
         )
       );
@@ -102,8 +101,7 @@ void main() {
       await tester.enterText(find.byType(EditableText), testValue);
       await tester.idle();
 
-      // Check that the onChanged event handler fired.
-      expect(inputValue.text, equals(testValue));
+      expect(controller.text, equals(testValue));
 
       return await tester.pumpWidget(builder());
     }
@@ -191,7 +189,7 @@ void main() {
 
   testWidgets('Can long press to select', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Overlay(
@@ -201,15 +199,14 @@ void main() {
               return new Center(
                 child: new Material(
                   child: new Input(
-                    value: inputValue,
                     key: inputKey,
-                    onChanged: (InputValue value) { inputValue = value; }
-                  )
-                )
+                    controller: controller,
+                  ),
+                ),
               );
-            }
-          )
-        ]
+            },
+          ),
+        ],
       );
     }
 
@@ -218,11 +215,11 @@ void main() {
     final String testValue = 'abc def ghi';
     await tester.enterText(find.byType(EditableText), testValue);
     await tester.idle();
-    expect(inputValue.text, testValue);
+    expect(controller.text, testValue);
 
     await tester.pumpWidget(builder());
 
-    expect(inputValue.selection.isCollapsed, true);
+    expect(controller.selection.isCollapsed, true);
 
     // Long press the 'e' to select 'def'.
     final Point ePos = textOffsetToPosition(tester, testValue.indexOf('e'));
@@ -232,13 +229,13 @@ void main() {
     await tester.pump();
 
     // 'def' is selected.
-    expect(inputValue.selection.baseOffset, testValue.indexOf('d'));
-    expect(inputValue.selection.extentOffset, testValue.indexOf('f')+1);
+    expect(controller.selection.baseOffset, testValue.indexOf('d'));
+    expect(controller.selection.extentOffset, testValue.indexOf('f')+1);
   });
 
   testWidgets('Can drag handles to change selection', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Overlay(
@@ -248,15 +245,14 @@ void main() {
               return new Center(
                 child: new Material(
                   child: new Input(
-                    value: inputValue,
                     key: inputKey,
-                    onChanged: (InputValue value) { inputValue = value; }
-                  )
-                )
+                    controller: controller,
+                  ),
+                ),
               );
-            }
-          )
-        ]
+            },
+          ),
+        ],
       );
     }
 
@@ -275,7 +271,7 @@ void main() {
     await gesture.up();
     await tester.pump();
 
-    final TextSelection selection = inputValue.selection;
+    final TextSelection selection = controller.selection;
 
     final RenderEditable renderEditable = findRenderEditable(tester);
     final List<TextSelectionPoint> endpoints = renderEditable.getEndpointsForSelection(
@@ -294,8 +290,8 @@ void main() {
     await gesture.up();
     await tester.pumpWidget(builder());
 
-    expect(inputValue.selection.baseOffset, selection.baseOffset);
-    expect(inputValue.selection.extentOffset, selection.extentOffset+2);
+    expect(controller.selection.baseOffset, selection.baseOffset);
+    expect(controller.selection.extentOffset, selection.extentOffset+2);
 
     // Drag the left handle 2 letters to the left.
     handlePos = endpoints[0].point + const Offset(-1.0, 1.0);
@@ -307,13 +303,13 @@ void main() {
     await gesture.up();
     await tester.pumpWidget(builder());
 
-    expect(inputValue.selection.baseOffset, selection.baseOffset-2);
-    expect(inputValue.selection.extentOffset, selection.extentOffset+2);
+    expect(controller.selection.baseOffset, selection.baseOffset-2);
+    expect(controller.selection.extentOffset, selection.extentOffset+2);
   });
 
   testWidgets('Can use selection toolbar', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Overlay(
@@ -323,15 +319,14 @@ void main() {
               return new Center(
                 child: new Material(
                   child: new Input(
-                    value: inputValue,
                     key: inputKey,
-                    onChanged: (InputValue value) { inputValue = value; }
-                  )
-                )
+                    controller: controller,
+                  ),
+                ),
               );
-            }
-          )
-        ]
+            },
+          ),
+        ],
       );
     }
 
@@ -347,38 +342,38 @@ void main() {
     await tester.pumpWidget(builder());
     RenderEditable renderEditable = findRenderEditable(tester);
     List<TextSelectionPoint> endpoints = renderEditable.getEndpointsForSelection(
-        inputValue.selection);
+        controller.selection);
     await tester.tapAt(endpoints[0].point + const Offset(1.0, 1.0));
     await tester.pumpWidget(builder());
 
     // SELECT ALL should select all the text.
     await tester.tap(find.text('SELECT ALL'));
     await tester.pumpWidget(builder());
-    expect(inputValue.selection.baseOffset, 0);
-    expect(inputValue.selection.extentOffset, testValue.length);
+    expect(controller.selection.baseOffset, 0);
+    expect(controller.selection.extentOffset, testValue.length);
 
     // COPY should reset the selection.
     await tester.tap(find.text('COPY'));
     await tester.pumpWidget(builder());
-    expect(inputValue.selection.isCollapsed, true);
+    expect(controller.selection.isCollapsed, true);
 
     // Tap again to bring back the menu.
     await tester.tapAt(textOffsetToPosition(tester, testValue.indexOf('e')));
     await tester.pumpWidget(builder());
     renderEditable = findRenderEditable(tester);
-    endpoints = renderEditable.getEndpointsForSelection(inputValue.selection);
+    endpoints = renderEditable.getEndpointsForSelection(controller.selection);
     await tester.tapAt(endpoints[0].point + const Offset(1.0, 1.0));
     await tester.pumpWidget(builder());
 
     // PASTE right before the 'e'.
     await tester.tap(find.text('PASTE'));
     await tester.pumpWidget(builder());
-    expect(inputValue.text, 'abc d${testValue}ef ghi');
+    expect(controller.text, 'abc d${testValue}ef ghi');
   });
 
   testWidgets('Selection toolbar fades in', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Overlay(
@@ -388,15 +383,14 @@ void main() {
               return new Center(
                 child: new Material(
                   child: new Input(
-                    value: inputValue,
                     key: inputKey,
-                    onChanged: (InputValue value) { inputValue = value; }
-                  )
-                )
+                    controller: controller,
+                  ),
+                ),
               );
-            }
-          )
-        ]
+            },
+          ),
+        ],
       );
     }
 
@@ -412,7 +406,7 @@ void main() {
     await tester.pumpWidget(builder());
     final RenderEditable renderEditable = findRenderEditable(tester);
     final List<TextSelectionPoint> endpoints = renderEditable.getEndpointsForSelection(
-        inputValue.selection);
+        controller.selection);
     await tester.tapAt(endpoints[0].point + const Offset(1.0, 1.0));
     await tester.pumpWidget(builder());
 
@@ -433,20 +427,19 @@ void main() {
 
   testWidgets('Multiline text will wrap up to maxLines', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder(int maxLines) {
       return new Center(
         child: new Material(
           child: new Input(
-            value: inputValue,
             key: inputKey,
+            controller: controller,
             style: const TextStyle(color: Colors.black, fontSize: 34.0),
             maxLines: maxLines,
             hintText: 'Placeholder',
-            onChanged: (InputValue value) { inputValue = value; }
-          )
-        )
+          ),
+        ),
       );
     }
 
@@ -488,7 +481,7 @@ void main() {
 
   testWidgets('Can drag handles to change selection in multiline', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Overlay(
@@ -498,17 +491,16 @@ void main() {
               return new Center(
                 child: new Material(
                   child: new Input(
-                    value: inputValue,
                     key: inputKey,
+                    controller: controller,
                     style: const TextStyle(color: Colors.black, fontSize: 34.0),
                     maxLines: 3,
-                    onChanged: (InputValue value) { inputValue = value; }
-                  )
-                )
+                  ),
+                ),
               );
-            }
-          )
-        ]
+            },
+          ),
+        ],
       );
     }
 
@@ -537,12 +529,12 @@ void main() {
     await gesture.up();
     await tester.pump();
 
-    expect(inputValue.selection.baseOffset, 76);
-    expect(inputValue.selection.extentOffset, 81);
+    expect(controller.selection.baseOffset, 76);
+    expect(controller.selection.extentOffset, 81);
 
     final RenderEditable renderEditable = findRenderEditable(tester);
     final List<TextSelectionPoint> endpoints = renderEditable.getEndpointsForSelection(
-        inputValue.selection);
+        controller.selection);
     expect(endpoints.length, 2);
 
     // Drag the right handle to the third line, just after 'Third'.
@@ -555,8 +547,8 @@ void main() {
     await gesture.up();
     await tester.pumpWidget(builder());
 
-    expect(inputValue.selection.baseOffset, 76);
-    expect(inputValue.selection.extentOffset, 108);
+    expect(controller.selection.baseOffset, 76);
+    expect(controller.selection.extentOffset, 108);
 
     // Drag the left handle to the first line, just after 'First'.
     handlePos = endpoints[0].point + const Offset(-1.0, 1.0);
@@ -568,18 +560,18 @@ void main() {
     await gesture.up();
     await tester.pumpWidget(builder());
 
-    expect(inputValue.selection.baseOffset, 5);
-    expect(inputValue.selection.extentOffset, 108);
+    expect(controller.selection.baseOffset, 5);
+    expect(controller.selection.extentOffset, 108);
 
     await tester.tap(find.text('CUT'));
     await tester.pumpWidget(builder());
-    expect(inputValue.selection.isCollapsed, true);
-    expect(inputValue.text, cutValue);
+    expect(controller.selection.isCollapsed, true);
+    expect(controller.text, cutValue);
   }, skip: Platform.isMacOS); // Skip due to https://github.com/flutter/flutter/issues/6961
 
   testWidgets('Can scroll multiline input', (WidgetTester tester) async {
     final GlobalKey inputKey = new GlobalKey();
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Overlay(
@@ -589,17 +581,16 @@ void main() {
               return new Center(
                 child: new Material(
                   child: new Input(
-                    value: inputValue,
                     key: inputKey,
+                    controller: controller,
                     style: const TextStyle(color: Colors.black, fontSize: 34.0),
                     maxLines: 2,
-                    onChanged: (InputValue value) { inputValue = value; }
-                  )
-                )
+                  ),
+                ),
               );
-            }
-          )
-        ]
+            },
+          ),
+        ],
       );
     }
 
@@ -652,7 +643,7 @@ void main() {
 
     final RenderEditable renderEditable = findRenderEditable(tester);
     final List<TextSelectionPoint> endpoints = renderEditable.getEndpointsForSelection(
-        inputValue.selection);
+        controller.selection);
     expect(endpoints.length, 2);
 
     // Drag the left handle to the first line, just after 'First'.
@@ -675,17 +666,16 @@ void main() {
   }, skip: Platform.isMacOS); // Skip due to https://github.com/flutter/flutter/issues/6961
 
   testWidgets('InputField smoke test', (WidgetTester tester) async {
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Center(
         child: new Material(
           child: new InputField(
-            value: inputValue,
+            controller: controller,
             hintText: 'Placeholder',
-            onChanged: (InputValue value) { inputValue = value; }
-          )
-        )
+          ),
+        ),
       );
     }
 
@@ -695,8 +685,7 @@ void main() {
       await tester.enterText(find.byType(EditableText), testValue);
       await tester.idle();
 
-      // Check that the onChanged event handler fired.
-      expect(inputValue.text, equals(testValue));
+      expect(controller.text, equals(testValue));
 
       return await tester.pumpWidget(builder());
     }
@@ -706,18 +695,17 @@ void main() {
 
   testWidgets('InputField with global key', (WidgetTester tester) async {
     final GlobalKey inputFieldKey = new GlobalKey(debugLabel: 'inputFieldKey');
-    InputValue inputValue = InputValue.empty;
+    final TextEditingController controller = new TextEditingController();
 
     Widget builder() {
       return new Center(
         child: new Material(
           child: new InputField(
             key: inputFieldKey,
-            value: inputValue,
+            controller: controller,
             hintText: 'Placeholder',
-            onChanged: (InputValue value) { inputValue = value; }
-          )
-        )
+          ),
+        ),
       );
     }
 
@@ -727,8 +715,7 @@ void main() {
       await tester.enterText(find.byType(EditableText), testValue);
       await tester.idle();
 
-      // Check that the onChanged event handler fired.
-      expect(inputValue.text, equals(testValue));
+      expect(controller.text, equals(testValue));
 
       return await tester.pumpWidget(builder());
     }
@@ -737,7 +724,6 @@ void main() {
   });
 
   testWidgets('InputField with default hintStyle', (WidgetTester tester) async {
-    final InputValue inputValue = InputValue.empty;
     final TextStyle textStyle = new TextStyle(
       color: Colors.pink[500],
       fontSize: 10.0,
@@ -752,7 +738,6 @@ void main() {
           data: themeData,
           child: new Material(
             child: new InputField(
-              value: inputValue,
               hintText: 'Placeholder',
               style: textStyle,
             ),
@@ -769,7 +754,6 @@ void main() {
   });
 
   testWidgets('InputField with specified hintStyle', (WidgetTester tester) async {
-    final InputValue inputValue = InputValue.empty;
     final TextStyle hintStyle = new TextStyle(
       color: Colors.pink[500],
       fontSize: 10.0,
@@ -779,7 +763,6 @@ void main() {
       return new Center(
         child: new Material(
           child: new InputField(
-            value: inputValue,
             hintText: 'Placeholder',
             hintStyle: hintStyle,
           ),
@@ -845,7 +828,6 @@ void main() {
           child: new Input(
             icon: new Icon(Icons.phone),
             labelText: 'label',
-            value: InputValue.empty,
           ),
         ),
       ),

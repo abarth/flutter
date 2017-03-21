@@ -65,7 +65,7 @@ class StockHomeState extends State<StockHome> {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
   bool _isSearching = false;
-  InputValue _searchQuery = InputValue.empty;
+  TextEditingController _searchQuery = new TextEditingController();
   bool _autorefresh = false;
 
   void _handleSearchBegin() {
@@ -73,7 +73,7 @@ class StockHomeState extends State<StockHome> {
       onRemove: () {
         setState(() {
           _isSearching = false;
-          _searchQuery = InputValue.empty;
+          _searchQuery.clear();
         });
       }
     ));
@@ -84,12 +84,6 @@ class StockHomeState extends State<StockHome> {
 
   void _handleSearchEnd() {
     Navigator.pop(context);
-  }
-
-  void _handleSearchQueryChanged(InputValue query) {
-    setState(() {
-      _searchQuery = query;
-    });
   }
 
   void _handleStockModeChange(StockMode value) {
@@ -293,9 +287,9 @@ class StockHomeState extends State<StockHome> {
         tooltip: 'Back'
       ),
       title: new TextField(
+        controller: _searchQuery,
         autofocus: true,
         hintText: 'Search stocks',
-        onChanged: _handleSearchQueryChanged
       ),
       backgroundColor: Theme.of(context).canvasColor
     );

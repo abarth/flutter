@@ -35,7 +35,7 @@ class TextFieldDemoState extends State<TextFieldDemo> {
   bool _autovalidate = false;
   bool _formWasEdited = false;
   GlobalKey<FormState> _formKey = new GlobalKey<FormState>();
-  GlobalKey<FormFieldState<InputValue>> _passwordFieldKey = new GlobalKey<FormFieldState<InputValue>>();
+  GlobalKey<FormFieldState<String>> _passwordFieldKey = new GlobalKey<FormFieldState<String>>();
   void _handleSubmitted() {
     final FormState form = _formKey.currentState;
     if (!form.validate()) {
@@ -47,30 +47,30 @@ class TextFieldDemoState extends State<TextFieldDemo> {
     }
   }
 
-  String _validateName(InputValue value) {
+  String _validateName(String text) {
     _formWasEdited = true;
-    if (value.text.isEmpty)
+    if (text.isEmpty)
       return 'Name is required.';
     final RegExp nameExp = new RegExp(r'^[A-za-z ]+$');
-    if (!nameExp.hasMatch(value.text))
+    if (!nameExp.hasMatch(text))
       return 'Please enter only alphabetical characters.';
     return null;
   }
 
-  String _validatePhoneNumber(InputValue value) {
+  String _validatePhoneNumber(String text) {
     _formWasEdited = true;
-    final RegExp phoneExp = new RegExp(r'^\d\d\d-\d\d\d\-\d\d\d\d$');
-    if (!phoneExp.hasMatch(value.text))
+    final RegExp phoneExpression = new RegExp(r'^\d\d\d-\d\d\d\-\d\d\d\d$');
+    if (!phoneExpression.hasMatch(text))
       return '###-###-#### - Please enter a valid phone number.';
     return null;
   }
 
-  String _validatePassword(InputValue value) {
+  String _validatePassword(String text) {
     _formWasEdited = true;
-    final FormFieldState<InputValue> passwordField = _passwordFieldKey.currentState;
-    if (passwordField.value == null || passwordField.value.text.isEmpty)
+    final FormFieldState<String> passwordField = _passwordFieldKey.currentState;
+    if (passwordField.value == null || passwordField.value.isEmpty)
       return 'Please choose a password.';
-    if (passwordField.value.text != value.text)
+    if (passwordField.value != text)
       return 'Passwords don\'t match';
     return null;
   }
@@ -117,7 +117,7 @@ class TextFieldDemoState extends State<TextFieldDemo> {
               icon: new Icon(Icons.person),
               hintText: 'What do people call you?',
               labelText: 'Name *',
-              onSaved: (InputValue val) { person.name = val.text; },
+              onSaved: (String text) { person.name = text; },
               validator: _validateName,
             ),
             new TextField(
@@ -125,7 +125,7 @@ class TextFieldDemoState extends State<TextFieldDemo> {
               hintText: 'Where can we reach you?',
               labelText: 'Phone Number *',
               keyboardType: TextInputType.phone,
-              onSaved: (InputValue val) { person.phoneNumber = val.text; },
+              onSaved: (String text) { person.phoneNumber = text; },
               validator: _validatePhoneNumber,
             ),
             new TextField(
@@ -142,7 +142,7 @@ class TextFieldDemoState extends State<TextFieldDemo> {
                     hintText: 'How do you log in?',
                     labelText: 'New Password *',
                     obscureText: true,
-                    onSaved: (InputValue val) { person.password = val.text; }
+                    onSaved: (String text) { person.password = text; }
                   )
                 ),
                 const SizedBox(width: 16.0),

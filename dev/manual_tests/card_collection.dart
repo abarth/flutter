@@ -6,13 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show debugDumpRenderTree;
 
 class CardModel {
-  CardModel(this.value, this.height) {
-    inputValue = new InputValue(text: 'Item $value');
-  }
-  int value;
-  double height;
+  CardModel(this.value, this.height)
+    : label = new TextEditingController(text: 'Item $value');
+
+  final int value;
+  final double height;
+  final TextEditingController label;
+
   int get color => ((value % 9) + 1) * 100;
-  InputValue inputValue;
   Key get key => new ObjectKey(this);
 }
 
@@ -261,11 +262,7 @@ class CardCollectionState extends State<CardCollection> {
             new Center(
               child: new TextField(
                 key: new GlobalObjectKey(cardModel),
-                onChanged: (InputValue value) {
-                  setState(() {
-                    cardModel.inputValue = value;
-                  });
-                },
+                controller: cardModel.label,
               ),
             )
           : new DefaultTextStyle.merge(
@@ -277,7 +274,7 @@ class CardCollectionState extends State<CardCollection> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  new Text(cardModel.inputValue.text, textAlign: _textAlign),
+                  new Text(cardModel.label.text, textAlign: _textAlign),
                 ],
               ),
             ),

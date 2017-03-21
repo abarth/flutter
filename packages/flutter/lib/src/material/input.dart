@@ -43,7 +43,7 @@ class InputField extends StatefulWidget {
   InputField({
     Key key,
     this.focusKey,
-    this.value,
+    this.controller,
     this.keyboardType: TextInputType.text,
     this.hintText,
     this.style,
@@ -57,9 +57,7 @@ class InputField extends StatefulWidget {
 
   final GlobalKey focusKey;
 
-  /// The current state of text of the input field. This includes the selected
-  /// text, if any, among other things.
-  final InputValue value;
+  final TextEditingController controller;
 
   /// The type of keyboard to use for editing the text.
   final TextInputType keyboardType;
@@ -97,10 +95,10 @@ class InputField extends StatefulWidget {
   /// Called when the text being edited changes.
   ///
   /// The [value] must be updated each time [onChanged] is invoked.
-  final ValueChanged<InputValue> onChanged;
+  final ValueChanged<String> onChanged;
 
   /// Called when the user indicates that they are done editing the text in the field.
-  final ValueChanged<InputValue> onSubmitted;
+  final ValueChanged<String> onSubmitted;
 
   @override
   _InputFieldState createState() => new _InputFieldState();
@@ -119,7 +117,6 @@ class _InputFieldState extends State<InputField> {
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterial(context));
-    final InputValue value = config.value ?? InputValue.empty;
     final ThemeData themeData = Theme.of(context);
     final TextStyle textStyle = config.style ?? themeData.textTheme.subhead;
 
@@ -136,7 +133,7 @@ class _InputFieldState extends State<InputField> {
           builder: (BuildContext context) {
             return new EditableText(
               key: _editableTextKey,
-              value: value,
+              controller: config.controller,
               focusKey: focusKey,
               style: textStyle,
               obscureText: config.obscureText,
@@ -154,7 +151,8 @@ class _InputFieldState extends State<InputField> {
       ),
     ];
 
-    if (config.hintText != null && value.text.isEmpty) {
+    final bool isEmpty = (config.controller?.text ?? '').isEmpty;
+    if (config.hintText != null && isEmpty) {
       final TextStyle hintStyle = config.hintStyle ??
         textStyle.copyWith(color: themeData.hintColor);
       stackChildren.add(
@@ -408,10 +406,11 @@ class _InputContainerState extends State<InputContainer> {
 ///
 /// Assuming that the input is already focused, the basic data flow for
 /// retrieving user input is:
-/// 1. User taps a character on the keyboard.
-/// 2. The [onChanged] callback is called with the current [InputValue].
-/// 3. Perform any necessary logic/validation on the current input value.
-/// 4. Update the state of the [Input] widget accordingly through [State.setState].
+///
+///  1. User taps a character on the keyboard.
+///  2. The [onChanged] callback is called with the current text.
+///  3. Perform any necessary logic/validation on the current input value.
+///  4. Update the state of the [Input] widget accordingly through [State.setState].
 ///
 /// For most cases, we recommend that you use the [Input] class within a
 /// [StatefulWidget] so you can save and operate on the current value of the
@@ -430,7 +429,7 @@ class Input extends StatefulWidget {
   // InputContainer, TextField, InputField.
   Input({
     Key key,
-    this.value,
+    this.controller,
     this.keyboardType: TextInputType.text,
     this.icon,
     this.labelText,
@@ -446,9 +445,7 @@ class Input extends StatefulWidget {
     this.onSubmitted,
   }) : super(key: key);
 
-  /// The current state of text of the input field. This includes the selected
-  /// text, if any, among other things.
-  final InputValue value;
+  final TextEditingController controller;
 
   /// The type of keyboard to use for editing the text.
   final TextInputType keyboardType;
@@ -510,10 +507,10 @@ class Input extends StatefulWidget {
   /// Called when the text being edited changes.
   ///
   /// The [value] must be updated each time [onChanged] is invoked.
-  final ValueChanged<InputValue> onChanged;
+  final ValueChanged<String> onChanged;
 
   /// Called when the user indicates that they are done editing the text in the field.
-  final ValueChanged<InputValue> onSubmitted;
+  final ValueChanged<String> onSubmitted;
 
   @override
   _InputState createState() => new _InputState();
@@ -538,7 +535,8 @@ class _InputState extends State<Input> {
       child: new Builder(
         builder: (BuildContext context) {
           final bool focused = Focus.at(focusKey.currentContext, autofocus: config.autofocus);
-          final bool isEmpty = (config.value ?? InputValue.empty).text.isEmpty;
+          // xyzzy: This won't update if controller is null.
+          final bool isEmpty = (config.controller?.text ?? '').isEmpty;
           return new InputContainer(
             focused: focused,
             isEmpty: isEmpty,
@@ -551,8 +549,8 @@ class _InputState extends State<Input> {
             showDivider: config.showDivider,
             child: new InputField(
               key: _inputFieldKey,
+              controller: config.controller,
               focusKey: focusKey,
-              value: config.value,
               style: config.style,
               obscureText: config.obscureText,
               maxLines: config.maxLines,
@@ -594,11 +592,11 @@ class _InputState extends State<Input> {
 ///     children: <Widget>[
 ///       new TextField(
 ///         labelText: 'First Name',
-///         onSaved: (InputValue value) { _firstName = value.text; }
+///         onSaved: (String value) { _firstName = text; }
 ///       ),
 ///       new TextField(
 ///         labelText: 'Last Name',
-///         onSaved: (InputValue value) { _lastName = value.text; }
+///         onSaved: (String value) { _lastName = text; }
 ///       ),
 ///       new RaisedButton(
 ///         child: new Text('SUBMIT'),
@@ -614,34 +612,31 @@ class _InputState extends State<Input> {
 /// Using [Input] directly:
 ///
 /// ```dart
-/// String _firstName, _lastName;
-/// InputValue _firstNameValue = const InputValue();
-/// InputValue _lastNameValue = const InputValue();
+/// TextEditingController _firstName = new TextEditingController();
+/// TextEditingController _lastName = new TextEditingController();
 /// ...
 /// new Row(
 ///   children: <Widget>[
 ///     new Input(
-///       value: _firstNameValue,
+///       controller: _firstName,
 ///       labelText: 'First Name',
-///       onChanged: (InputValue value) { setState( () { _firstNameValue = value; } ); }
 ///     ),
 ///     new Input(
-///       value: _lastNameValue,
+///       controller: _lastName,
 ///       labelText: 'Last Name',
-///       onChanged: (InputValue value) { setState( () { _lastNameValue = value; } ); }
 ///     ),
 ///     new RaisedButton(
 ///       child: new Text('SUBMIT'),
 ///       onPressed: () {
-///         _firstName = _firstNameValue.text;
-///         _lastName = _lastNameValue.text;
+///         print('First name: ${_firstName.text}\nLast name: ${_lastName.text}')
 ///       },
 ///     ),
 ///  )
 /// ```
-class TextField extends FormField<InputValue> {
+class TextField extends FormField<String> {
   TextField({
     Key key,
+    TextEditingController controller,
     GlobalKey focusKey,
     TextInputType keyboardType: TextInputType.text,
     Icon icon,
@@ -652,18 +647,18 @@ class TextField extends FormField<InputValue> {
     bool isDense: false,
     bool autofocus: false,
     int maxLines: 1,
-    InputValue initialValue: InputValue.empty,
-    FormFieldSetter<InputValue> onSaved,
-    FormFieldValidator<InputValue> validator,
-    ValueChanged<InputValue> onChanged,
+    FormFieldSetter<String> onSaved,
+    FormFieldValidator<String> validator,
+    ValueChanged<String> onChanged,
   }) : super(
     key: key,
-    initialValue: initialValue,
+    initialValue: controller?.text ?? '',
     onSaved: onSaved,
     validator: validator,
-    builder: (FormFieldState<InputValue> field) {
+    builder: (FormFieldState<String> field) {
       return new Input(
         key: focusKey,
+        controller: controller,
         keyboardType: keyboardType,
         icon: icon,
         labelText: labelText,
@@ -673,11 +668,10 @@ class TextField extends FormField<InputValue> {
         isDense: isDense,
         autofocus: autofocus,
         maxLines: maxLines,
-        value: field.value,
-        onChanged: (InputValue value) {
-          field.onChanged(value);
+        onChanged: (String text) {
+          field.onChanged(text);
           if (onChanged != null)
-            onChanged(value);
+            onChanged(text);
         },
         errorText: field.errorText,
       );

@@ -209,7 +209,7 @@ class _ExpansionPanelsDemoState extends State<ExpasionPanelsDemo> {
                       hintText: item.hint,
                       labelText: item.name,
                       initialValue: new InputValue(text: item.value),
-                      onSaved: (InputValue val) { item.value = val.text; },
+                      onSaved: (String text) { item.value = text; },
                     ),
                   ),
                 );

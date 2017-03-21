@@ -16,7 +16,7 @@ void main() {
           child: new Form(
             key: formKey,
             child: new TextField(
-              onSaved: (InputValue value) { fieldValue = value.text; },
+              onSaved: (String value) { fieldValue = value; },
             ),
           )
         )
@@ -47,7 +47,7 @@ void main() {
         child: new Material(
           child: new Form(
             child: new TextField(
-              onChanged: (InputValue value) { fieldValue = value.text; },
+              onChanged: (String value) { fieldValue = value; },
             ),
           )
         )
@@ -72,7 +72,7 @@ void main() {
   testWidgets('Validator sets the error text only when validate is called', (WidgetTester tester) async {
     final GlobalKey<FormState> formKey = new GlobalKey<FormState>();
     final GlobalKey inputKey = new GlobalKey();
-    String errorText(InputValue input) => input.text + '/error';
+    String errorText(String text) => text + '/error';
 
     Widget builder(bool autovalidate) {
       return new Center(
@@ -99,10 +99,10 @@ void main() {
       await tester.pumpWidget(builder(false));
 
       // We have to manually validate if we're not autovalidating.
-      expect(find.text(errorText(new InputValue(text: testValue))), findsNothing);
+      expect(find.text(errorText(testValue)), findsNothing);
       formKey.currentState.validate();
       await tester.pump();
-      expect(find.text(errorText(new InputValue(text: testValue))), findsOneWidget);
+      expect(find.text(errorText(testValue)), findsOneWidget);
 
       // Try again with autovalidation. Should validate immediately.
       formKey.currentState.reset();
@@ -110,7 +110,7 @@ void main() {
       await tester.idle();
       await tester.pumpWidget(builder(true));
 
-      expect(find.text(errorText(new InputValue(text: testValue))), findsOneWidget);
+      expect(find.text(errorText(testValue)), findsOneWidget);
     }
 
     await checkErrorText('Test');
@@ -119,10 +119,10 @@ void main() {
 
   testWidgets('Multiple Inputs communicate', (WidgetTester tester) async {
     final GlobalKey<FormState> formKey = new GlobalKey<FormState>();
-    final GlobalKey<FormFieldState<InputValue>> fieldKey = new GlobalKey<FormFieldState<InputValue>>();
+    final GlobalKey<FormFieldState<String>> fieldKey = new GlobalKey<FormFieldState<String>>();
     final GlobalKey focusKey = new GlobalKey();
     // Input 2's validator depends on a input 1's value.
-    String errorText(InputValue input) => fieldKey.currentState.value?.text.toString() + '/error';
+    String errorText(String input) => fieldKey.currentState.value + '/error';
 
     Widget builder() {
       return new Center(
@@ -166,18 +166,19 @@ void main() {
 
   testWidgets('Provide initial value to input', (WidgetTester tester) async {
     final String initialValue = 'hello';
-    final GlobalKey<FormFieldState<InputValue>> inputKey = new GlobalKey<FormFieldState<InputValue>>();
+    final TextEditingController controller = new TextEditingController(text: initialValue);
+    final GlobalKey<FormFieldState<String>> textFieldKey = new GlobalKey<FormFieldState<String>>();
 
     Widget builder() {
       return new Center(
         child: new Material(
           child: new Form(
             child: new TextField(
-              key: inputKey,
-              initialValue: new InputValue(text: initialValue),
+              key: textFieldKey,
+              controller: controller,
             ),
-          )
-        )
+          ),
+        ),
       );
     }
 
@@ -190,15 +191,15 @@ void main() {
 
     // initial value should also be visible in the raw input line
     final EditableTextState editableText = tester.state(find.byType(EditableText));
-    expect(editableText.config.value.text, equals(initialValue));
+    expect(editableText.config.controller.text, equals(initialValue));
 
     // sanity check, make sure we can still edit the text and everything updates
-    expect(inputKey.currentState.value.text, equals(initialValue));
+    expect(controller.text, equals(initialValue));
     await tester.enterText(find.byType(EditableText), 'world');
     await tester.idle();
     await tester.pump();
-    expect(inputKey.currentState.value.text, equals('world'));
-    expect(editableText.config.value.text, equals('world'));
+    expect(controller.text, equals('world'));
+    expect(editableText.config.controller.text, equals('world'));
   });
 
   testWidgets('No crash when a FormField is removed from the tree', (WidgetTester tester) async {
@@ -214,8 +215,8 @@ void main() {
             child: remove ? new Container() : new TextField(
               key: fieldKey,
               autofocus: true,
-              onSaved: (InputValue value) { fieldValue = value.text; },
-              validator: (InputValue value) { return value.text.isEmpty ? null : 'yes'; }
+              onSaved: (String value) { fieldValue = value; },
+              validator: (String value) { return value.isEmpty ? null : 'yes'; }
             ),
           )
         )
