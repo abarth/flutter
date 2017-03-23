@@ -42,7 +42,7 @@ const Curve _kTransitionCurve = Curves.fastOutSlowIn;
 class InputField extends StatefulWidget {
   InputField({
     Key key,
-    this.focusKey,
+    this.focusNode,
     this.value,
     this.keyboardType: TextInputType.text,
     this.hintText,
@@ -55,7 +55,10 @@ class InputField extends StatefulWidget {
     this.onSubmitted,
   }) : super(key: key);
 
-  final GlobalKey focusKey;
+  /// Controls whether this widget has keyboard focus.
+  /// 
+  /// If null, this widget will create its own [FocusNode].
+  final FocusNode focusNode;
 
   /// The current state of text of the input field. This includes the selected
   /// text, if any, among other things.
@@ -108,9 +111,15 @@ class InputField extends StatefulWidget {
 
 class _InputFieldState extends State<InputField> {
   final GlobalKey<EditableTextState> _editableTextKey = new GlobalKey<EditableTextState>();
-  final GlobalKey<EditableTextState> _focusKey = new GlobalKey(debugLabel: "_InputFieldState _focusKey");
 
-  GlobalKey get focusKey => config.focusKey ?? (config.key is GlobalKey ? config.key : _focusKey);
+  FocusNode _focusNode;
+  FocusNode get _effectiveFocusNode => config.focusNode ?? (_focusNode ??= new FocusNode());
+
+  @override
+  void dispose() {
+    _focusNode?.dispose();
+    super.dispose();
+  }
 
   void requestKeyboard() {
     _editableTextKey.currentState?.requestKeyboard();
@@ -125,31 +134,22 @@ class _InputFieldState extends State<InputField> {
 
     final List<Widget> stackChildren = <Widget>[
       new GestureDetector(
-        key: focusKey == _focusKey ? _focusKey : null,
         behavior: HitTestBehavior.opaque,
         onTap: requestKeyboard,
-        // Since the focusKey may have been created here, defer building the
-        // EditableText until the focusKey's context has been set. This is
-        // necessary because the EditableText will check the focus, like
-        // Focus.at(focusContext), when it builds.
-        child: new Builder(
-          builder: (BuildContext context) {
-            return new EditableText(
-              key: _editableTextKey,
-              value: value,
-              focusKey: focusKey,
-              style: textStyle,
-              obscureText: config.obscureText,
-              maxLines: config.maxLines,
-              autofocus: config.autofocus,
-              cursorColor: themeData.textSelectionColor,
-              selectionColor: themeData.textSelectionColor,
-              selectionControls: materialTextSelectionControls,
-              keyboardType: config.keyboardType,
-              onChanged: config.onChanged,
-              onSubmitted: config.onSubmitted,
-            );
-          }
+        child: new EditableText(
+          key: _editableTextKey,
+          value: value,
+          focusNode: _effectiveFocusNode,
+          style: textStyle,
+          obscureText: config.obscureText,
+          maxLines: config.maxLines,
+          autofocus: config.autofocus,
+          cursorColor: themeData.textSelectionColor,
+          selectionColor: themeData.textSelectionColor,
+          selectionControls: materialTextSelectionControls,
+          keyboardType: config.keyboardType,
+          onChanged: config.onChanged,
+          onSubmitted: config.onSubmitted,
         ),
       ),
     ];
@@ -431,6 +431,7 @@ class Input extends StatefulWidget {
   Input({
     Key key,
     this.value,
+    this.focusNode,
     this.keyboardType: TextInputType.text,
     this.icon,
     this.labelText,
@@ -449,6 +450,11 @@ class Input extends StatefulWidget {
   /// The current state of text of the input field. This includes the selected
   /// text, if any, among other things.
   final InputValue value;
+
+  /// Controls whether this widget has keyboard focus.
+  /// 
+  /// If null, this widget will create its own [FocusNode].
+  final FocusNode focusNode;
 
   /// The type of keyboard to use for editing the text.
   final TextInputType keyboardType;
@@ -521,26 +527,30 @@ class Input extends StatefulWidget {
 
 class _InputState extends State<Input> {
   final GlobalKey<_InputFieldState> _inputFieldKey = new GlobalKey<_InputFieldState>();
-  final GlobalKey _focusKey = new GlobalKey();
 
-  GlobalKey get focusKey => config.key is GlobalKey ? config.key : _focusKey;
+  FocusNode _focusNode;
+  FocusNode get _effectiveFocusNode => config.focusNode ?? (_focusNode ??= new FocusNode());
+
+  @override
+  void dispose() {
+    _focusNode?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bool isEmpty = (config.value ?? InputValue.empty).text.isEmpty;
+    final FocusNode focusNode = _effectiveFocusNode;
+
     return new GestureDetector(
-      key: focusKey == _focusKey ? _focusKey : null,
       onTap: () {
         _inputFieldKey.currentState?.requestKeyboard();
       },
-      // Since the focusKey may have been created here, defer building the
-      // InputContainer until the focusKey's context has been set. This is
-      // necessary because we're passing the value of Focus.at() along.
-      child: new Builder(
-        builder: (BuildContext context) {
-          final bool focused = Focus.at(focusKey.currentContext, autofocus: config.autofocus);
-          final bool isEmpty = (config.value ?? InputValue.empty).text.isEmpty;
+      child: new AnimatedBuilder(
+        animation: focusNode,
+        builder: (BuildContext context, Widget child) {
           return new InputContainer(
-            focused: focused,
+            focused: focusNode.hasFocus,
             isEmpty: isEmpty,
             icon: config.icon,
             labelText: config.labelText,
@@ -549,20 +559,21 @@ class _InputState extends State<Input> {
             style: config.style,
             isDense: config.isDense,
             showDivider: config.showDivider,
-            child: new InputField(
-              key: _inputFieldKey,
-              focusKey: focusKey,
-              value: config.value,
-              style: config.style,
-              obscureText: config.obscureText,
-              maxLines: config.maxLines,
-              autofocus: config.autofocus,
-              keyboardType: config.keyboardType,
-              onChanged: config.onChanged,
-              onSubmitted: config.onSubmitted,
-            ),
+            child: child,
           );
         },
+        child: new InputField(
+          key: _inputFieldKey,
+          focusNode: focusNode,
+          value: config.value,
+          style: config.style,
+          obscureText: config.obscureText,
+          maxLines: config.maxLines,
+          autofocus: config.autofocus,
+          keyboardType: config.keyboardType,
+          onChanged: config.onChanged,
+          onSubmitted: config.onSubmitted,
+        ),
       ),
     );
   }
@@ -642,7 +653,7 @@ class _InputState extends State<Input> {
 class TextField extends FormField<InputValue> {
   TextField({
     Key key,
-    GlobalKey focusKey,
+    FocusNode focusNode,
     TextInputType keyboardType: TextInputType.text,
     Icon icon,
     String labelText,
@@ -663,7 +674,7 @@ class TextField extends FormField<InputValue> {
     validator: validator,
     builder: (FormFieldState<InputValue> field) {
       return new Input(
-        key: focusKey,
+        focusNode: focusNode,
         keyboardType: keyboardType,
         icon: icon,
         labelText: labelText,
