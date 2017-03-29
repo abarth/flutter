@@ -133,6 +133,7 @@ class EditableText extends StatefulWidget {
     this.obscureText: false,
     @required this.style,
     @required this.cursorColor,
+    this.textAlign,
     this.textScaleFactor,
     this.maxLines: 1,
     this.autofocus: false,
@@ -164,6 +165,9 @@ class EditableText extends StatefulWidget {
 
   /// The text style to use for the editable text.
   final TextStyle style;
+
+  /// How the text should be aligned horizontally.
+  final TextAlign textAlign;
 
   /// The number of font pixels for each logical pixel.
   ///
@@ -422,6 +426,7 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
           maxLines: config.maxLines,
           selectionColor: config.selectionColor,
           textScaleFactor: config.textScaleFactor ?? MediaQuery.of(context).textScaleFactor,
+          textAlign: config.textAlign,
           obscureText: config.obscureText,
           offset: offset,
           onSelectionChanged: _handleSelectionChanged,
@@ -441,6 +446,7 @@ class _Editable extends LeafRenderObjectWidget {
     this.maxLines,
     this.selectionColor,
     this.textScaleFactor,
+    this.textAlign,
     this.obscureText,
     this.offset,
     this.onSelectionChanged,
@@ -453,6 +459,7 @@ class _Editable extends LeafRenderObjectWidget {
   final int maxLines;
   final Color selectionColor;
   final double textScaleFactor;
+  final TextAlign textAlign;
   final bool obscureText;
   final ViewportOffset offset;
   final SelectionChangedHandler onSelectionChanged;
@@ -466,6 +473,7 @@ class _Editable extends LeafRenderObjectWidget {
       maxLines: maxLines,
       selectionColor: selectionColor,
       textScaleFactor: textScaleFactor,
+      textAlign: textAlign,
       selection: value.selection,
       offset: offset,
       onSelectionChanged: onSelectionChanged,
@@ -481,6 +489,7 @@ class _Editable extends LeafRenderObjectWidget {
       ..maxLines = maxLines
       ..selectionColor = selectionColor
       ..textScaleFactor = textScaleFactor
+      ..textAlign = textAlign
       ..selection = value.selection
       ..offset = offset
       ..onSelectionChanged = onSelectionChanged;

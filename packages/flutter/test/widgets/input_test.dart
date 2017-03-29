@@ -680,7 +680,7 @@ void main() {
     Widget builder() {
       return new Center(
         child: new Material(
-          child: new InputField(
+          child: new Input(
             value: inputValue,
             hintText: 'Placeholder',
             onChanged: (InputValue value) { inputValue = value; }
@@ -705,14 +705,14 @@ void main() {
   });
 
   testWidgets('InputField with global key', (WidgetTester tester) async {
-    final GlobalKey inputFieldKey = new GlobalKey(debugLabel: 'inputFieldKey');
+    final GlobalKey inputKey = new GlobalKey(debugLabel: 'inputKey');
     InputValue inputValue = InputValue.empty;
 
     Widget builder() {
       return new Center(
         child: new Material(
-          child: new InputField(
-            key: inputFieldKey,
+          child: new Input(
+            key: inputKey,
             value: inputValue,
             hintText: 'Placeholder',
             onChanged: (InputValue value) { inputValue = value; }
@@ -736,7 +736,7 @@ void main() {
     checkText('Hello World');
   });
 
-  testWidgets('InputField with default hintStyle', (WidgetTester tester) async {
+  testWidgets('Input with default hintStyle', (WidgetTester tester) async {
     final InputValue inputValue = InputValue.empty;
     final TextStyle textStyle = new TextStyle(
       color: Colors.pink[500],
@@ -751,7 +751,7 @@ void main() {
         child: new Theme(
           data: themeData,
           child: new Material(
-            child: new InputField(
+            child: new Input(
               value: inputValue,
               hintText: 'Placeholder',
               style: textStyle,
@@ -768,7 +768,7 @@ void main() {
     expect(hintText.style.fontSize, textStyle.fontSize);
   });
 
-  testWidgets('InputField with specified hintStyle', (WidgetTester tester) async {
+  testWidgets('Input with specified hintStyle', (WidgetTester tester) async {
     final InputValue inputValue = InputValue.empty;
     final TextStyle hintStyle = new TextStyle(
       color: Colors.pink[500],
@@ -778,7 +778,7 @@ void main() {
     Widget builder() {
       return new Center(
         child: new Material(
-          child: new InputField(
+          child: new Input(
             value: inputValue,
             hintText: 'Placeholder',
             hintStyle: hintStyle,

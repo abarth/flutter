@@ -45,9 +45,8 @@ class InputField extends StatefulWidget {
     this.focusKey,
     this.value,
     this.keyboardType: TextInputType.text,
-    this.hintText,
     this.style,
-    this.hintStyle,
+    this.textAlign,
     this.obscureText: false,
     this.maxLines: 1,
     this.autofocus: false,
@@ -64,17 +63,11 @@ class InputField extends StatefulWidget {
   /// The type of keyboard to use for editing the text.
   final TextInputType keyboardType;
 
-  /// Text to show inline in the input field when it would otherwise be empty.
-  final String hintText;
-
   /// The style to use for the text being edited.
   final TextStyle style;
 
-  /// The style to use for the hint text.
-  ///
-  /// Defaults to the specified TextStyle in style with the hintColor from
-  /// the ThemeData
-  final TextStyle hintStyle;
+  /// How the text should be aligned horizontally.
+  final TextAlign textAlign;
 
   /// Whether to hide the text being edited (e.g., for passwords).
   ///
@@ -139,6 +132,7 @@ class _InputFieldState extends State<InputField> {
               value: value,
               focusKey: focusKey,
               style: textStyle,
+              textAlign: config.textAlign,
               obscureText: config.obscureText,
               maxLines: config.maxLines,
               autofocus: config.autofocus,
@@ -153,20 +147,6 @@ class _InputFieldState extends State<InputField> {
         ),
       ),
     ];
-
-    if (config.hintText != null && value.text.isEmpty) {
-      final TextStyle hintStyle = config.hintStyle ??
-        textStyle.copyWith(color: themeData.hintColor);
-      stackChildren.add(
-        new Positioned(
-          left: 0.0,
-          top: textStyle.fontSize - hintStyle.fontSize,
-          child: new IgnorePointer(
-            child: new Text(config.hintText, style: hintStyle),
-          ),
-        ),
-      );
-    }
 
     return new RepaintBoundary(child: new Stack(children: stackChildren));
   }
@@ -191,6 +171,8 @@ class InputContainer extends StatefulWidget {
     this.icon,
     this.labelText,
     this.hintText,
+    this.hintStyle,
+    this.hintTextAlign,
     this.errorText,
     this.style,
     this.isDense: false,
@@ -212,6 +194,15 @@ class InputContainer extends StatefulWidget {
 
   /// Text that appears over the child if isEmpty is true and labelText is null.
   final String hintText;
+
+  /// The style to use for the [hintText].
+  ///
+  /// Defaults to the specified [TextStyle] in style with the
+  /// [ThemeData.hintColor] from the current theme.
+  final TextStyle hintStyle;
+
+  /// How to align the [hintText].
+  final TextAlign hintTextAlign;
 
   /// Text that appears below the child. If errorText is non-null the divider
   /// that appears below the child is red.
@@ -306,17 +297,18 @@ class _InputContainerState extends State<InputContainer> {
     }
 
     if (config.hintText != null) {
-      final TextStyle hintStyle = textStyle.copyWith(color: themeData.hintColor);
+      final TextStyle hintStyle = config.hintStyle ?? textStyle.copyWith(color: themeData.hintColor);
       stackChildren.add(
         new Positioned(
           left: 0.0,
+          right: 0.0,
           top: topPadding + textStyle.fontSize - hintStyle.fontSize,
           child: new AnimatedOpacity(
             opacity: (config.isEmpty && !hasInlineLabel) ? 1.0 : 0.0,
             duration: _kTransitionDuration,
             curve: _kTransitionCurve,
             child: new IgnorePointer(
-              child: new Text(config.hintText, style: hintStyle),
+              child: new Text(config.hintText, style: hintStyle, textAlign: config.hintTextAlign),
             ),
           ),
         ),
@@ -435,8 +427,10 @@ class Input extends StatefulWidget {
     this.icon,
     this.labelText,
     this.hintText,
+    this.hintStyle,
     this.errorText,
     this.style,
+    this.textAlign,
     this.obscureText: false,
     this.showDivider: true,
     this.isDense: false,
@@ -468,11 +462,20 @@ class Input extends StatefulWidget {
   /// Text to show inline in the input field when it would otherwise be empty.
   final String hintText;
 
+  /// The style to use for the [hintText].
+  ///
+  /// Defaults to the specified [TextStyle] in style with the
+  /// [ThemeData.hintColor] from the current theme.
+  final TextStyle hintStyle;
+
   /// Text to show when the input text is invalid.
   final String errorText;
 
   /// The style to use for the text being edited.
   final TextStyle style;
+
+  /// How the text should be aligned horizontally.
+  final TextAlign textAlign;
 
   /// Whether to hide the text being edited (e.g., for passwords).
   ///
@@ -545,6 +548,8 @@ class _InputState extends State<Input> {
             icon: config.icon,
             labelText: config.labelText,
             hintText: config.hintText,
+            hintStyle: config.hintStyle,
+            hintTextAlign: config.textAlign,
             errorText: config.errorText,
             style: config.style,
             isDense: config.isDense,
@@ -554,6 +559,7 @@ class _InputState extends State<Input> {
               focusKey: focusKey,
               value: config.value,
               style: config.style,
+              textAlign: config.textAlign,
               obscureText: config.obscureText,
               maxLines: config.maxLines,
               autofocus: config.autofocus,
@@ -648,6 +654,7 @@ class TextField extends FormField<InputValue> {
     String labelText,
     String hintText,
     TextStyle style,
+    TextAlign textAlign,
     bool obscureText: false,
     bool isDense: false,
     bool autofocus: false,
@@ -669,6 +676,7 @@ class TextField extends FormField<InputValue> {
         labelText: labelText,
         hintText: hintText,
         style: style,
+        textAlign: textAlign,
         obscureText: obscureText,
         isDense: isDense,
         autofocus: autofocus,
