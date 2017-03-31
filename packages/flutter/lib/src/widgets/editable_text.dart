@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:meta/meta.dart';
 
 import 'basic.dart';
 import 'focus_manager.dart';
@@ -345,11 +346,13 @@ class EditableTextState extends State<EditableText> implements TextInputClient {
 
   /// Whether the blinking cursor is actually visible at this precise moment
   /// (it's hidden half the time, since it blinks).
+  @visibleForTesting
   bool get cursorCurrentlyVisible => _showCursor;
 
   /// The cursor blink interval (the amount of time the cursor is in the "on"
   /// state or the "off" state). A complete cursor blink period is twice this
   /// value (half on, half off).
+  @visibleForTesting
   Duration get cursorBlinkInterval => _kCursorBlinkHalfPeriod;
 
   void _cursorTick(Timer timer) {
