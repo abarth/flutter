@@ -19,7 +19,7 @@ import 'scroll_physics.dart';
 import 'scrollable.dart';
 import 'text_selection.dart';
 
-export 'package:flutter/services.dart' show TextSelection, TextInputType;
+export 'package:flutter/services.dart' show TextEditingValue, TextSelection, TextInputType;
 
 const Duration _kCursorBlinkHalfPeriod = const Duration(milliseconds: 500);
 
@@ -39,21 +39,21 @@ class TextEditingController extends ChangeNotifier {
     _value = newValue;
     notifyListeners();
   }
- 
+
   String get text => _value.text;
   set text(String newText) {
     value = value.copyWith(text: newText, composing: TextRange.empty);
   }
- 
+
   TextSelection get selection => _value.selection;
   set selection(TextSelection newSelection) {
     value = value.copyWith(selection: newSelection, composing: TextRange.empty);
   }
- 
+
   void clear() {
     value = TextEditingValue.empty;
   }
- 
+
   void clearComposing() {
     value = value.copyWith(composing: TextRange.empty);
   }

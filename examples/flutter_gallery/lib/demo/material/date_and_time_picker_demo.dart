@@ -27,8 +27,10 @@ class _InputDropdown extends StatelessWidget {
     return new InkWell(
       onTap: onPressed,
       child: new InputDecorator(
-        labelText: labelText,
-        style: valueStyle,
+        decoration: new InputDecoration(
+          labelText: labelText,
+        ),
+        baseStyle: valueStyle,
         child: new Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           mainAxisSize: MainAxisSize.min,
@@ -133,11 +135,15 @@ class _DateAndTimePickerDemoState extends State<DateAndTimePickerDemo> {
           padding: const EdgeInsets.all(16.0),
           children: <Widget>[
             new TextField(
-              labelText: 'Event name',
+              decoration: const InputDecoration(
+                labelText: 'Event name',
+              ),
               style: Theme.of(context).textTheme.display1,
             ),
             new TextField(
-              labelText: 'Location',
+              decoration: const InputDecoration(
+                labelText: 'Location',
+              ),
               style: Theme.of(context).textTheme.display1.copyWith(fontSize: 20.0),
             ),
             new _DateTimePicker(
@@ -171,8 +177,10 @@ class _DateAndTimePickerDemoState extends State<DateAndTimePickerDemo> {
               },
             ),
             new InputDecorator(
-              labelText: 'Activity',
-              hintText: 'Choose an activity',
+              decoration: const InputDecoration(
+                labelText: 'Activity',
+                hintText: 'Choose an activity',
+              ),
               isEmpty: _activity == null,
               child: new DropdownButton<String>(
                 value: _activity,
