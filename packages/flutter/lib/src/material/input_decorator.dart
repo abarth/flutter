@@ -112,42 +112,84 @@ const Duration _kTransitionDuration = const Duration(milliseconds: 200);
 const Curve _kTransitionCurve = Curves.fastOutSlowIn;
 
 class _InputDecoratorState extends State<InputDecorator> {
+
+  Color _getActiveColor(ThemeData themeData) {
+    if (config.isFocused) {
+      switch (themeData.brightness) {
+        case Brightness.dark:
+          return themeData.accentColor;
+        case Brightness.light:
+          return themeData.primaryColor;
+      }
+    }
+    return themeData.hintColor;
+  }
+
+  Widget _buildContent(Color borderColor, double topPadding, bool isDense) {
+    final double bottomPadding = isDense ? 8.0 : 1.0;
+    const double bottomBorder = 2.0;
+    final double bottomHeight = isDense ? 14.0 : 18.0;
+
+    final EdgeInsets padding = new EdgeInsets.only(top: topPadding, bottom: bottomPadding);
+    final EdgeInsets margin = new EdgeInsets.only(bottom: bottomHeight - (bottomPadding + bottomBorder));
+
+    if (config.decoration.hideDivider) {
+      return new Container(
+        margin: margin + new EdgeInsets.only(bottom: bottomBorder),
+        padding: padding,
+        child: config.child,
+      );
+    }
+
+    return new AnimatedContainer(
+      margin: margin,
+      padding: padding,
+      duration: _kTransitionDuration,
+      curve: _kTransitionCurve,
+      decoration: new BoxDecoration(
+        border: new Border(
+          bottom: new BorderSide(
+            color: borderColor,
+            width: bottomBorder,
+          ),
+        ),
+      ),
+      child: config.child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMaterial(context));
     final ThemeData themeData = Theme.of(context);
-    final String errorText = config.errorText;
 
-    final TextStyle textStyle = config.style ?? themeData.textTheme.subhead;
-    Color activeColor = themeData.hintColor;
-    if (config.focused) {
-      switch (themeData.brightness) {
-        case Brightness.dark:
-          activeColor = themeData.accentColor;
-          break;
-        case Brightness.light:
-          activeColor = themeData.primaryColor;
-          break;
-      }
-    }
-    double topPadding = config.isDense ? 12.0 : 16.0;
+    final bool isDense = config.decoration.isDense;
+    final String labelText = config.decoration.labelText;
+    final String hintText = config.decoration.hintText;
+    final String errorText = config.decoration.errorText;
+
+    final TextStyle baseStyle = config.baseStyle ?? themeData.textTheme.subhead;
+    final TextStyle hintStyle = config.decoration.hintStyle ?? baseStyle.copyWith(color: themeData.hintColor);
+
+    final Color activeColor = _getActiveColor(themeData);
+
+    double topPadding = isDense ? 12.0 : 16.0;
 
     final List<Widget> stackChildren = <Widget>[];
 
     // If we're not focused, there's not value, and labelText was provided,
     // then the label appears where the hint would. And we will not show
     // the hintText.
-    final bool hasInlineLabel = !config.focused && config.labelText != null && config.isEmpty;
+    final bool hasInlineLabel = !config.isFocused && labelText != null && config.isEmpty;
 
-    if (config.labelText != null) {
+    if (labelText != null) {
       final TextStyle labelStyle = hasInlineLabel ?
-        textStyle.copyWith(color: themeData.hintColor) :
-        themeData.textTheme.caption.copyWith(color: activeColor);
+        hintStyle : (config.decoration.labelStyle ?? themeData.textTheme.caption.copyWith(color: activeColor));
 
-      final double topPaddingIncrement = themeData.textTheme.caption.fontSize + (config.isDense ? 4.0 : 8.0);
+      final double topPaddingIncrement = themeData.textTheme.caption.fontSize + (isDense ? 4.0 : 8.0);
       double top = topPadding;
       if (hasInlineLabel)
-        top += topPaddingIncrement + textStyle.fontSize - labelStyle.fontSize;
+        top += topPaddingIncrement + baseStyle.fontSize - labelStyle.fontSize;
 
       stackChildren.add(
         new AnimatedPositioned(
@@ -156,109 +198,74 @@ class _InputDecoratorState extends State<InputDecorator> {
           duration: _kTransitionDuration,
           curve: _kTransitionCurve,
           child: new _AnimatedLabel(
-            text: config.labelText,
+            text: labelText,
             style: labelStyle,
             duration: _kTransitionDuration,
             curve: _kTransitionCurve,
-          )
+          ),
         ),
       );
 
       topPadding += topPaddingIncrement;
     }
 
-    if (config.hintText != null) {
-      final TextStyle hintStyle = textStyle.copyWith(color: themeData.hintColor);
+    if (hintText != null) {
       stackChildren.add(
         new Positioned(
           left: 0.0,
-          top: topPadding + textStyle.fontSize - hintStyle.fontSize,
+          top: topPadding + baseStyle.fontSize - hintStyle.fontSize,
           child: new AnimatedOpacity(
             opacity: (config.isEmpty && !hasInlineLabel) ? 1.0 : 0.0,
             duration: _kTransitionDuration,
             curve: _kTransitionCurve,
-            child: new IgnorePointer(
-              child: new Text(config.hintText, style: hintStyle),
-            ),
+            child: new Text(hintText, style: hintStyle),
           ),
         ),
       );
     }
 
     final Color borderColor = errorText == null ? activeColor : themeData.errorColor;
-    final double bottomPadding = config.isDense ? 8.0 : 1.0;
-    final double bottomBorder = 2.0;
-    final double bottomHeight = config.isDense ? 14.0 : 18.0;
+    stackChildren.add(_buildContent(borderColor, topPadding, isDense));
 
-    final EdgeInsets padding = new EdgeInsets.only(top: topPadding, bottom: bottomPadding);
-    final Border border = new Border(
-      bottom: new BorderSide(
-        color: borderColor,
-        width: bottomBorder,
-      )
-    );
-    final EdgeInsets margin = new EdgeInsets.only(bottom: bottomHeight - (bottomPadding + bottomBorder));
-
-    Widget divider;
-    if (!config.showDivider) {
-      divider = new Container(
-        margin: margin + new EdgeInsets.only(bottom: bottomBorder),
-        padding: padding,
-        child: config.child,
-      );
-    } else {
-      divider = new AnimatedContainer(
-        margin: margin,
-        padding: padding,
-        duration: _kTransitionDuration,
-        curve: _kTransitionCurve,
-        decoration: new BoxDecoration(
-          border: border,
-        ),
-        child: config.child,
-      );
-    }
-    stackChildren.add(divider);
-
-    if (!config.isDense) {
-      final TextStyle errorStyle = themeData.textTheme.caption.copyWith(color: themeData.errorColor);
+    if (!isDense && errorText != null) {
+      final TextStyle errorStyle = config.decoration.errorStyle ?? themeData.textTheme.caption.copyWith(color: themeData.errorColor);
       stackChildren.add(new Positioned(
         left: 0.0,
         bottom: 0.0,
-        child: new Text(errorText ?? '', style: errorStyle)
+        child: new Text(errorText, style: errorStyle)
       ));
     }
 
-    Widget textField = new Stack(children: stackChildren);
+    Widget result = new Stack(children: stackChildren);
 
-    if (config.icon != null) {
-      final double iconSize = config.isDense ? 18.0 : 24.0;
-      final double iconTop = topPadding + (textStyle.fontSize - iconSize) / 2.0;
-      textField = new Row(
+    if (config.decoration.icon != null) {
+      final double iconSize = isDense ? 18.0 : 24.0;
+      final double iconTop = topPadding + (baseStyle.fontSize - iconSize) / 2.0;
+      result = new Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           new Container(
             margin: new EdgeInsets.only(top: iconTop),
-            width: config.isDense ? 40.0 : 48.0,
+            width: isDense ? 40.0 : 48.0,
             child: new IconTheme.merge(
               context: context,
               data: new IconThemeData(
-                color: config.focused ? activeColor : Colors.black45,
-                size: config.isDense ? 18.0 : 24.0
+                color: config.isFocused ? activeColor : Colors.black45,
+                size: isDense ? 18.0 : 24.0,
               ),
-              child: config.icon
-            )
+              child: config.decoration.icon,
+            ),
           ),
-          new Expanded(child: textField)
-        ]
+          new Expanded(child: result),
+        ],
       );
     }
 
-    return textField;
+    return result;
   }
 }
 
-// Helper widget to smoothly animate the labelText of an Input, as it
+// Smoothly animate the label of an InputDecorator as the label
 // transitions between inline and caption.
 class _AnimatedLabel extends ImplicitlyAnimatedWidget {
   _AnimatedLabel({
@@ -309,7 +316,7 @@ class _AnimatedLabelState extends AnimatedWidgetBaseState<_AnimatedLabel> {
       child: new Text(
         config.text,
         style: style,
-      )
+      ),
     );
   }
 }
