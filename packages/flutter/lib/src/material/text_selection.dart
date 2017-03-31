@@ -196,4 +196,4 @@ class _MaterialTextSelectionControls extends TextSelectionControls {
   }
 }
 
-final _MaterialTextSelectionControls materialTextSelectionControls = new _MaterialTextSelectionControls();
+final TextSelectionControls materialTextSelectionControls = new _MaterialTextSelectionControls();

@@ -26,7 +26,7 @@ class _InputDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return new InkWell(
       onTap: onPressed,
-      child: new InputContainer(
+      child: new InputDecorator(
         labelText: labelText,
         style: valueStyle,
         child: new Row(
@@ -170,7 +170,7 @@ class _DateAndTimePickerDemoState extends State<DateAndTimePickerDemo> {
                 });
               },
             ),
-            new InputContainer(
+            new InputDecorator(
               labelText: 'Activity',
               hintText: 'Choose an activity',
               isEmpty: _activity == null,
