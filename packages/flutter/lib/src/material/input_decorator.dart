@@ -63,6 +63,24 @@ class InputDecoration {
   ///
   /// Defaults to false.
   final bool hideDivider;
+
+  @override
+  String toString() {
+    final List<String> description = <String>[];
+    if (icon != null)
+      description.add('icon: $icon');
+    if (labelText != null)
+      description.add('labelText: "$labelText"');
+    if (hintText != null)
+      description.add('hintText: "$hintText"');
+    if (errorText != null)
+      description.add('errorText: "$errorText"');
+    if (isDense)
+      description.add('isDense: $isDense');
+    if (hideDivider)
+      description.add('hideDivider: $hideDivider');
+    return 'InputDecoration(${description.join(', ')})';
+  }
 }
 
 /// Displays the visual elements of a material design text field around an
@@ -106,6 +124,15 @@ class InputDecorator extends StatefulWidget {
 
   @override
   _InputDecoratorState createState() => new _InputDecoratorState();
+
+  @override
+  void debugFillDescription(List<String> description) {
+    super.debugFillDescription(description);
+    description.add('decoration: $decoration');
+    description.add('baseStyle: $baseStyle');
+    description.add('isFocused: $isFocused');
+    description.add('isEmpty: $isEmpty');
+  }
 }
 
 const Duration _kTransitionDuration = const Duration(milliseconds: 200);

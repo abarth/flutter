@@ -84,6 +84,26 @@ class TextField extends StatefulWidget {
 
   @override
   _TextFieldState createState() => new _TextFieldState();
+
+  @override
+  void debugFillDescription(List<String> description) {
+    super.debugFillDescription(description);
+    if (controller != null)
+      description.add('controller: $controller');
+    if (focusNode != null)
+      description.add('focusNode: $focusNode');
+    description.add('decoration: $decoration');
+    if (keyboardType != TextInputType.text)
+      description.add('keyboardType: $keyboardType');
+    if (style != null)
+      description.add('style: $style');
+    if (autofocus)
+      description.add('autofocus: $autofocus');
+    if (obscureText)
+      description.add('obscureText: $obscureText');
+    if (maxLines != 1)
+      description.add('maxLines: $maxLines');
+  }
 }
 
 class _TextFieldState extends State<TextField> {

@@ -56,6 +56,11 @@ class TextEditingController extends ChangeNotifier {
   void clearComposing() {
     value = value.copyWith(composing: TextRange.empty);
   }
+
+  @override
+  String toString() {
+    return '$runtimeType#$hashCode($value)';
+  }
 }
 
 /// A basic text input field.

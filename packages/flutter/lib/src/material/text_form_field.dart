@@ -94,7 +94,7 @@ class TextFormField extends FormField<String> {
     FormFieldValidator<String> validator,
   }) : super(
     key: key,
-    initialValue: controller.value.text,
+    initialValue: controller != null ? controller.value.text : '',
     onSaved: onSaved,
     validator: validator,
     builder: (FormFieldState<String> field) {
