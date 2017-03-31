@@ -101,7 +101,7 @@ class TextFormField extends FormField<String> {
       return new TextField(
         controller: controller,
         focusNode: focusNode,
-        decoration: decoration,
+        decoration: decoration.copyWith(errorText: field.errorText),
         keyboardType: keyboardType,
         style: style,
         autofocus: autofocus,

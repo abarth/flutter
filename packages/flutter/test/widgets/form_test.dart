@@ -100,7 +100,6 @@ void main() {
       expect(find.text(errorText(testValue)), findsNothing);
       formKey.currentState.validate();
       await tester.pump();
-      debugDumpApp();
       expect(find.text(errorText(testValue)), findsOneWidget);
 
       // Try again with autovalidation. Should validate immediately.

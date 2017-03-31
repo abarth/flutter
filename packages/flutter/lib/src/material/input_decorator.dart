@@ -64,6 +64,63 @@ class InputDecoration {
   /// Defaults to false.
   final bool hideDivider;
 
+  InputDecoration copyWith({
+    Widget icon,
+    String labelText,
+    TextStyle labelStyle,
+    String hintText,
+    TextStyle hintStyle,
+    String errorText,
+    TextStyle errorStyle,
+    bool isDense,
+    bool hideDivider,
+  }) {
+    return new InputDecoration(
+      icon: icon ?? this.icon,
+      labelText: labelText ?? this.labelText,
+      labelStyle: labelStyle ?? this.labelStyle,
+      hintText: hintText ?? this.hintText,
+      hintStyle: hintStyle ?? this.hintStyle,
+      errorText: errorText ?? this.errorText,
+      errorStyle: errorStyle ?? this.errorStyle,
+      isDense: isDense ?? this.isDense,
+      hideDivider: hideDivider ?? this.hideDivider,
+    );
+  }
+
+  @override
+  bool operator ==(dynamic other) {
+    if (identical(this, other))
+      return true;
+    if (other.runtimeType != runtimeType)
+      return false;
+    final InputDecoration typedOther = other;
+    return typedOther.icon == icon
+        && typedOther.labelText == labelText
+        && typedOther.labelStyle == labelStyle
+        && typedOther.hintText == hintText
+        && typedOther.hintStyle == hintStyle
+        && typedOther.errorText == errorText
+        && typedOther.errorStyle == errorStyle
+        && typedOther.isDense == isDense
+        && typedOther.hideDivider == hideDivider;
+  }
+
+  @override
+  int get hashCode {
+    return hashValues(
+      icon,
+      labelText,
+      labelStyle,
+      hintText,
+      hintStyle,
+      errorText,
+      errorStyle,
+      isDense,
+      hideDivider,
+    );
+  }
+
   @override
   String toString() {
     final List<String> description = <String>[];
