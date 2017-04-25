@@ -122,7 +122,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       position._didUpdateScrollDirection(value);
   }
 
-  _NestedDragScrollCoordinator _currentDrag;
+  _NestedDrag _currentDrag;
 
   void beginActivity(ScrollActivity newOuterActivity, _NestedScrollActivityGetter newInnerActivityCallback) {
     _outerPosition.beginActivity(newOuterActivity);
@@ -353,7 +353,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
   }
 
   Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) {
-    final _NestedDragScrollCoordinator result = new _NestedDragScrollCoordinator(
+    final _NestedDrag result = new _NestedDrag(
       this,
       details,
       dragCancelCallback,
@@ -366,7 +366,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
     return result;
   }
 
-  void scrollByDelta(double offset) {
+  void applyUserOffset(double offset) {
     assert(offset != 0.0);
     if (_innerPositions.isEmpty) {
       _outerPosition.applyFullDragUpdate(offset);
@@ -778,9 +778,9 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   }
 }
 
-class _NestedDragScrollCoordinator implements Drag {
+class _NestedDrag implements Drag {
   // TODO(ianh): There's a lot of code duplication with DragScrollActivity here.
-  _NestedDragScrollCoordinator(
+  _NestedDrag(
     this.owner,
     DragStartDetails details,
     this.onDragCanceled,
@@ -793,18 +793,7 @@ class _NestedDragScrollCoordinator implements Drag {
   dynamic get lastDetails => _lastDetails;
   dynamic _lastDetails;
 
-  bool get _reversed {
-    assert(owner?._outerPosition?.axisDirection != null);
-    switch (owner._outerPosition.axisDirection) {
-      case AxisDirection.up:
-      case AxisDirection.left:
-        return true;
-      case AxisDirection.down:
-      case AxisDirection.right:
-        return false;
-    }
-    return null;
-  }
+  bool get _reversed => axisDirectionIsReversed(owner._outerPosition.axisDirection);
 
   @override
   void update(DragUpdateDetails details) {
@@ -816,7 +805,7 @@ class _NestedDragScrollCoordinator implements Drag {
     if (_reversed) // e.g. an AxisDirection.up scrollable
       offset = -offset;
     owner.updateUserScrollDirection(offset > 0.0 ? ScrollDirection.forward : ScrollDirection.reverse);
-    owner.scrollByDelta(-offset);
+    owner.applyUserOffset(-offset);
   }
 
   @override
@@ -853,7 +842,7 @@ class _NestedScrollDragActivity extends ScrollActivity {
     this.coordinator,
   ) : super(delegate);
 
-  final _NestedDragScrollCoordinator coordinator;
+  final _NestedDrag coordinator;
 
   @override
   void dispatchScrollStartNotification(ScrollMetrics metrics, BuildContext context) {
