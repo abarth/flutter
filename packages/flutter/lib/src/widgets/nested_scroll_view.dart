@@ -35,13 +35,13 @@ class NestedScrollView extends StatefulWidget {
     this.scrollDirection: Axis.vertical,
     this.reverse: false,
     this.physics,
-    @required this.outerSliverBuilder,
-    @required this.innerBox,
+    @required this.headerSliverBuilder,
+    @required this.body,
   }) : super(key: key) {
     assert(scrollDirection != null);
     assert(reverse != null);
-    assert(outerSliverBuilder != null);
-    assert(innerBox != null);
+    assert(headerSliverBuilder != null);
+    assert(body != null);
   }
 
   // TODO(ianh): we should expose a controller so you can call animateTo, etc.
@@ -52,20 +52,20 @@ class NestedScrollView extends StatefulWidget {
 
   final ScrollPhysics physics;
 
-  final NestedScrollViewOuterSliversBuilder outerSliverBuilder;
+  final NestedScrollViewOuterSliversBuilder headerSliverBuilder;
 
-  final Widget innerBox;
+  final Widget body;
 
   double get initialScrollOffset => 0.0;
 
   @protected
-  List<Widget> buildSlivers(BuildContext context, ScrollController innerController, bool innerBoxIsScrolled) {
+  List<Widget> buildSlivers(BuildContext context, ScrollController innerController, bool bodyIsScrolled) {
     final List<Widget> slivers = <Widget>[];
-    slivers.addAll(outerSliverBuilder(context, innerBoxIsScrolled));
+    slivers.addAll(headerSliverBuilder(context, bodyIsScrolled));
     slivers.add(new SliverFillRemaining(
       child: new PrimaryScrollController(
         controller: innerController,
-        child: innerBox,
+        child: body,
       ),
     ));
     return slivers;
@@ -101,7 +101,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
     return _innerController.nestedPositions;
   }
 
-  bool get hasScrolledInnerBox {
+  bool get hasScrolledBody {
     for (_NestedScrollPosition position in _innerPositions) {
       if (position.pixels > position.minScrollExtent)
         return true;
@@ -193,7 +193,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       );
     }
 
-    final _NestedScrollingSituation situationReport = _computeSituationReport(innerPosition, velocity);
+    final _NestedScrollMetrics situationReport = _computeSituationReport(innerPosition, velocity);
 
     return _outerPosition.createBallisticScrollActivity(
       _outerPosition.physics.createBallisticSimulation(situationReport, velocity),
@@ -215,7 +215,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
     );
   }
 
-  _NestedScrollingSituation _computeSituationReport(_NestedScrollPosition innerPosition, double velocity) {
+  _NestedScrollMetrics _computeSituationReport(_NestedScrollPosition innerPosition, double velocity) {
     assert(innerPosition != null);
     double pixels, minRange, maxRange, correctionOffset, extra;
     if (innerPosition.pixels == innerPosition.minScrollExtent) {
@@ -271,7 +271,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
         correctionOffset = 0.0;
       }
     }
-    return new _NestedScrollingSituation(
+    return new _NestedScrollMetrics(
       minScrollExtent: _outerPosition.minScrollExtent,
       maxScrollExtent: _outerPosition.maxScrollExtent + innerPosition.maxScrollExtent - innerPosition.minScrollExtent + extra,
       pixels: pixels,
@@ -432,39 +432,28 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       reverse: widget.reverse,
       physics: new ClampingScrollPhysics(parent: widget.physics),
       controller: _outerController,
-      slivers: widget.buildSlivers(context, _innerController, hasScrolledInnerBox),
+      slivers: widget.buildSlivers(context, _innerController, hasScrolledBody),
     );
   }
 }
 
-class _NestedScrollingSituation extends ScrollMetrics {
-  _NestedScrollingSituation({
-    @required this.minScrollExtent,
-    @required this.maxScrollExtent,
-    @required this.pixels,
-    @required this.viewportDimension,
-    @required this.axisDirection,
+class _NestedScrollMetrics extends FixedScrollMetrics {
+  _NestedScrollMetrics({
+    @required double minScrollExtent,
+    @required double maxScrollExtent,
+    @required double pixels,
+    @required double viewportDimension,
+    @required AxisDirection axisDirection,
     @required this.minRange,
     @required this.maxRange,
     @required this.correctionOffset,
-  });
-
-  @override
-  final double minScrollExtent;
-
-  @override
-  final double maxScrollExtent;
-
-  @override
-  final double pixels;
-
-  @override
-  final double viewportDimension;
-
-  @override
-  final AxisDirection axisDirection;
-
-  // The remainder are for outer ballistics logic:
+  }) : super(
+    minScrollExtent: minScrollExtent,
+    maxScrollExtent: maxScrollExtent,
+    pixels: pixels,
+    viewportDimension: viewportDimension,
+    axisDirection: axisDirection,
+  );
 
   final double minRange;
 

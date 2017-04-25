@@ -13,7 +13,7 @@ Widget buildTest() {
       body: new DefaultTabController(
         length: 4,
         child: new NestedScrollView(
-          outerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
             return <Widget>[
               new SliverAppBar(
                 title: const Text('TTTTTTTT'),
@@ -31,7 +31,7 @@ Widget buildTest() {
               ),
             ];
           },
-          innerBox: new TabBarView(
+          body: new TabBarView(
             children: <Widget>[
               new ListView(
                 children: <Widget>[
