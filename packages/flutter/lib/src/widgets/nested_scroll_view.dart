@@ -373,6 +373,7 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
       new DragScrollActivity(_outerPosition, drag),
       (_NestedScrollPosition position) => new DragScrollActivity(position, drag),
     );
+    assert(_currentDrag == null);
     _currentDrag = drag;
     return drag;
   }
@@ -431,6 +432,7 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
   @override
   void dispose() {
     _currentDrag?.dispose();
+    _currentDrag = null;
     _outerController.dispose();
     _innerController.dispose();
     super.dispose();
