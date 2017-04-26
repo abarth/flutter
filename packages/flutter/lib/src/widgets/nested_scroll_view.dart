@@ -586,7 +586,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     final double actualNewPixels = newPixels - overscroll;
     if (actualNewPixels != oldPixels) {
       forcePixels(actualNewPixels);
-      didUpdateScrollPositionBy(pixels - oldPixels);
+      didUpdateScrollPositionBy(actualNewPixels - oldPixels);
     }
     return overscroll;
   }
