@@ -112,6 +112,14 @@ class ScrollPositionWithSingleContext extends ScrollPosition implements ScrollAc
     assert(other.context == context);
     super.absorb(other);
     _userScrollDirection = other._userScrollDirection;
+
+    assert(_currentDrag == null);
+    if (other._currentDrag != null) {
+      other._currentDrag.updateDelegate(this);
+      _currentDrag = other._currentDrag;
+      other._currentDrag = null;
+    }
+
     assert(activity == null);
     assert(other.activity != null);
     other.activity.updateDelegate(this);
@@ -176,10 +184,10 @@ class ScrollPositionWithSingleContext extends ScrollPosition implements ScrollAc
       oldIgnorePointer = false;
       wasScrolling = false;
     }
-    _activity = newActivity;
-    isScrollingNotifier.value = activity.isScrolling;
     _currentDrag?.dispose();
     _currentDrag = null;
+    _activity = newActivity;
+    isScrollingNotifier.value = activity.isScrolling;
     if (!activity.isScrolling)
       updateUserScrollDirection(ScrollDirection.idle);
     if (oldIgnorePointer != shouldIgnorePointer)

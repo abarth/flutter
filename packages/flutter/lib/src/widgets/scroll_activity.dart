@@ -108,16 +108,26 @@ class IdleScrollActivity extends ScrollActivity {
 
 class ScrollDragController implements Drag {
   ScrollDragController(
-    this.delegate,
+    ScrollActivityDelegate delegate,
     DragStartDetails details,
     this.onDragCanceled,
-  ) : _lastDetails = details;
+  ) : _delegate = delegate, _lastDetails = details;
 
-  final ScrollActivityDelegate delegate;
+  ScrollActivityDelegate get delegate => _delegate;
+  ScrollActivityDelegate _delegate;
 
   final VoidCallback onDragCanceled;
 
   bool get _reversed => axisDirectionIsReversed(delegate.axisDirection);
+
+  /// Updates the activity's link to the [ScrollActivityDelegate].
+  ///
+  /// This should only be called when an activity is being moved from a defunct
+  /// (or about-to-be defunct) [ScrollActivityDelegate] object to a new one.
+  void updateDelegate(ScrollActivityDelegate value) {
+    assert(_delegate != value);
+    _delegate = value;
+  }
 
   @override
   void update(DragUpdateDetails details) {
