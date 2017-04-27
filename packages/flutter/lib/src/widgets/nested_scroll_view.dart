@@ -179,12 +179,12 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
   @override
   void goBallistic(double velocity) {
     beginActivity(
-      _createOuterBallisticScrollActivity(velocity),
-      (_NestedScrollPosition position) => _createInnerBallisticScrollActivity(position, velocity),
+      createOuterBallisticScrollActivity(velocity),
+      (_NestedScrollPosition position) => createInnerBallisticScrollActivity(position, velocity),
     );
   }
 
-  ScrollActivity _createOuterBallisticScrollActivity(double velocity) {
+  ScrollActivity createOuterBallisticScrollActivity(double velocity) {
     // TODO(ianh): Refactor so this doesn't need to poke at the internals of the
     // other classes here (e.g. calling through _outerPosition.physics)
 
@@ -236,7 +236,7 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
   }
 
   @protected
-  ScrollActivity _createInnerBallisticScrollActivity(_NestedScrollPosition position, double velocity) {
+  ScrollActivity createInnerBallisticScrollActivity(_NestedScrollPosition position, double velocity) {
     return position._createBallisticScrollActivity(
       position.physics.createBallisticSimulation(
         velocity == 0 ? position : _getMetrics(position, velocity),
@@ -741,12 +741,12 @@ class _NestedInnerBallisticScrollActivity extends BallisticScrollActivity {
 
   @override
   void resetActivity() {
-    delegate.beginActivity(coorindator._createInnerBallisticScrollActivity(delegate, velocity));
+    delegate.beginActivity(coorindator.createInnerBallisticScrollActivity(delegate, velocity));
   }
 
   @override
   void applyNewDimensions() {
-    delegate.beginActivity(coorindator._createInnerBallisticScrollActivity(delegate, velocity));
+    delegate.beginActivity(coorindator.createInnerBallisticScrollActivity(delegate, velocity));
   }
 
   @override
@@ -780,12 +780,12 @@ class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
 
   @override
   void resetActivity() {
-    delegate.beginActivity(coorindator._createOuterBallisticScrollActivity(velocity));
+    delegate.beginActivity(coorindator.createOuterBallisticScrollActivity(velocity));
   }
 
   @override
   void applyNewDimensions() {
-    delegate.beginActivity(coorindator._createOuterBallisticScrollActivity(velocity));
+    delegate.beginActivity(coorindator.createOuterBallisticScrollActivity(velocity));
   }
 
   @override
