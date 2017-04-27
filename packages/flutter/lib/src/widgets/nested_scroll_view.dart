@@ -484,12 +484,12 @@ class _NestedScrollMetrics extends FixedScrollMetrics {
 }
 
 class _NestedScrollController extends ScrollController {
-  _NestedScrollController(this.owner, {
+  _NestedScrollController(this.coorindator, {
     double initialScrollOffset: 0.0,
     String debugLabel,
   }) : super(initialScrollOffset: initialScrollOffset, debugLabel: debugLabel);
 
-  final _NestedScrollCoorindator owner;
+  final _NestedScrollCoorindator coorindator;
 
   @override
   ScrollPosition createScrollPosition(
@@ -498,7 +498,7 @@ class _NestedScrollController extends ScrollController {
     ScrollPosition oldPosition,
   ) {
     return new _NestedScrollPosition(
-      owner: owner,
+      coorindator: coorindator,
       physics: physics,
       context: context,
       initialPixels: initialScrollOffset,
@@ -511,8 +511,8 @@ class _NestedScrollController extends ScrollController {
   void attach(ScrollPosition position) {
     assert(position is _NestedScrollPosition);
     super.attach(position);
-    owner.updateParent();
-    owner.updateCanDrag();
+    coorindator.updateParent();
+    coorindator.updateCanDrag();
   }
 
   Iterable<_NestedScrollPosition> get nestedPositions sync* {
@@ -527,7 +527,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     double initialPixels: 0.0,
     ScrollPosition oldPosition,
     String debugLabel,
-    @required this.owner,
+    @required this.coorindator,
   }) : super(
     physics: physics,
     context: context,
@@ -541,7 +541,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     assert(activity != null);
   }
 
-  final _NestedScrollCoorindator owner;
+  final _NestedScrollCoorindator coorindator;
 
   TickerProvider get vsync => context.vsync;
 
@@ -603,7 +603,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   }
 
   @override
-  ScrollDirection get userScrollDirection => owner.userScrollDirection;
+  ScrollDirection get userScrollDirection => coorindator.userScrollDirection;
 
   DrivenScrollActivity createAnimateScrollActivity(double to, Duration duration, Curve curve) {
     return new DrivenScrollActivity(
@@ -656,9 +656,9 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
         assert(correctionOffset != null);
         if (minRange == maxRange)
           return new IdleScrollActivity(this);
-        return new _NestedOuterBallisticScrollActivity(owner, this, minRange, maxRange, correctionOffset, simulation, context.vsync);
+        return new _NestedOuterBallisticScrollActivity(coorindator, this, minRange, maxRange, correctionOffset, simulation, context.vsync);
       case _NestedBallisticScrollActivityMode.inner:
-        return new _NestedInnerBallisticScrollActivity(owner, this, simulation, context.vsync);
+        return new _NestedInnerBallisticScrollActivity(coorindator, this, simulation, context.vsync);
       case _NestedBallisticScrollActivityMode.independent:
         return new BallisticScrollActivity(this, simulation, context.vsync);
     }
@@ -670,12 +670,12 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     @required Duration duration,
     @required Curve curve,
   }) {
-    return owner.animateTo(owner.unnestOffset(to, this), duration: duration, curve: curve);
+    return coorindator.animateTo(coorindator.unnestOffset(to, this), duration: duration, curve: curve);
   }
 
   @override
   void jumpTo(double value) {
-    return owner.jumpTo(owner.unnestOffset(value, this));
+    return coorindator.jumpTo(coorindator.unnestOffset(value, this));
   }
 
   @override
@@ -696,7 +696,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   @override
   void applyNewDimensions() {
     super.applyNewDimensions();
-    owner.updateCanDrag();
+    coorindator.updateCanDrag();
   }
 
   void updateCanDrag(double totalExtent) {
@@ -705,7 +705,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
 
   @override
   void didTouch() {
-    owner.didTouch();
+    coorindator.didTouch();
   }
 
   void _propagateTouched() {
@@ -714,7 +714,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
 
   @override
   Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) {
-    return owner.drag(details, dragCancelCallback);
+    return coorindator.drag(details, dragCancelCallback);
   }
 
   @override
@@ -728,36 +728,36 @@ enum _NestedBallisticScrollActivityMode { outer, inner, independent }
 
 class _NestedInnerBallisticScrollActivity extends BallisticScrollActivity {
   _NestedInnerBallisticScrollActivity(
-    this.owner,
+    this.coorindator,
     _NestedScrollPosition position,
     Simulation simulation,
     TickerProvider vsync,
   ) : super(position, simulation, vsync);
 
-  final _NestedScrollCoorindator owner;
+  final _NestedScrollCoorindator coorindator;
 
   @override
   _NestedScrollPosition get delegate => super.delegate;
 
   @override
   void resetActivity() {
-    delegate.beginActivity(owner._createInnerBallisticScrollActivity(delegate, velocity));
+    delegate.beginActivity(coorindator._createInnerBallisticScrollActivity(delegate, velocity));
   }
 
   @override
   void applyNewDimensions() {
-    delegate.beginActivity(owner._createInnerBallisticScrollActivity(delegate, velocity));
+    delegate.beginActivity(coorindator._createInnerBallisticScrollActivity(delegate, velocity));
   }
 
   @override
   bool applyMoveTo(double value) {
-    return super.applyMoveTo(owner.nestOffset(value, delegate));
+    return super.applyMoveTo(coorindator.nestOffset(value, delegate));
   }
 }
 
 class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
   _NestedOuterBallisticScrollActivity(
-    this.owner,
+    this.coorindator,
     _NestedScrollPosition position,
     this.minRange,
     this.maxRange,
@@ -769,7 +769,7 @@ class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
     assert(maxRange > minRange);
   }
 
-  final _NestedScrollCoorindator owner;
+  final _NestedScrollCoorindator coorindator;
 
   final double minRange;
   final double maxRange;
@@ -780,12 +780,12 @@ class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
 
   @override
   void resetActivity() {
-    delegate.beginActivity(owner._createOuterBallisticScrollActivity(velocity));
+    delegate.beginActivity(coorindator._createOuterBallisticScrollActivity(velocity));
   }
 
   @override
   void applyNewDimensions() {
-    delegate.beginActivity(owner._createOuterBallisticScrollActivity(velocity));
+    delegate.beginActivity(coorindator._createOuterBallisticScrollActivity(velocity));
   }
 
   @override
