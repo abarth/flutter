@@ -61,11 +61,11 @@ class LinkedScrollController extends ScrollController {
   }
 
   @override
-  LinkedScrollPosition createScrollPosition(ScrollPhysics physics, ScrollContext state, ScrollPosition oldPosition) {
+  LinkedScrollPosition createScrollPosition(ScrollPhysics physics, ScrollContext context, ScrollPosition oldPosition) {
     return new LinkedScrollPosition(
       this,
       physics: physics,
-      context: state,
+      context: context,
       initialPixels: initialScrollOffset,
       oldPosition: oldPosition,
     );
@@ -108,8 +108,7 @@ class LinkedScrollController extends ScrollController {
 }
 
 class LinkedScrollPosition extends ScrollPositionWithSingleContext {
-  LinkedScrollPosition(
-    this.owner, {
+  LinkedScrollPosition(this.owner, {
     ScrollPhysics physics,
     ScrollContext context,
     double initialPixels,
