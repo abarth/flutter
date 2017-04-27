@@ -565,14 +565,19 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     assert(delta != 0.0);
     final double min = delta > 0.0 ? -double.INFINITY : minScrollExtent;
     final double max = delta < 0.0 ? double.INFINITY : maxScrollExtent;
-    final double clampedDelta = (pixels + delta).clamp(min, max) - pixels;
+    final double oldPixels = pixels;
+    final double newPixels = (pixels + delta).clamp(min, max);
+    final double clampedDelta = newPixels - pixels;
     if (clampedDelta == 0.0)
       return delta;
-    final double overscroll = physics.applyBoundaryConditions(this, pixels + clampedDelta);
-    final double adjustedClampedDelta = clampedDelta - overscroll;
-    forcePixels(pixels + adjustedClampedDelta);
-    didUpdateScrollPositionBy(adjustedClampedDelta);
-    return delta - adjustedClampedDelta;
+    final double overscroll = physics.applyBoundaryConditions(this, newPixels);
+    final double actualNewPixels = newPixels - overscroll;
+    final double actualDelta = actualNewPixels - oldPixels;
+    if (actualDelta != 0.0) {
+      forcePixels(actualNewPixels);
+      didUpdateScrollPositionBy(actualDelta);
+    }
+    return delta - actualDelta;
   }
 
   double applyFullDragUpdate(double delta) {
