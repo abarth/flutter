@@ -369,7 +369,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
   void applyUserOffset(double offset) {
     assert(offset != 0.0);
     if (_innerPositions.isEmpty) {
-      _outerPosition.applyFullDragUpdate(offset);
+      _outerPosition.applyFullDragUpdate(-offset);
     } else if (offset > 0.0) {
       // dragging "up"
       // TODO(ianh): prioritize first getting rid of overscroll, and then the
@@ -381,7 +381,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       final double innerOffset = _outerPosition.applyClampedDragUpdate(offset);
       if (innerOffset != 0.0) {
         for (_NestedScrollPosition position in _innerPositions)
-          position.applyFullDragUpdate(innerOffset);
+          position.applyFullDragUpdate(-innerOffset);
       }
     } else {
       // dragging "down" - offsets are negative
@@ -402,7 +402,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       for (_NestedScrollPosition position in innerPositions) {
         final double thisRemainingOffset = remainingOffsets.removeAt(0) - minimumRemainingOffset;
         if (thisRemainingOffset < 0.0)
-          position.applyFullDragUpdate(thisRemainingOffset);
+          position.applyFullDragUpdate(-thisRemainingOffset);
       }
     }
   }
@@ -578,18 +578,18 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   double applyFullDragUpdate(double delta) {
     assert(delta != 0.0);
     final double oldPixels = pixels;
-    final double newPixels = pixels + physics.applyPhysicsToUserOffset(this, delta);
+    final double newPixels = pixels - physics.applyPhysicsToUserOffset(this, delta);
     if (oldPixels == newPixels)
       return 0.0; // delta must have been so small we dropped it during floating point addition
-    final double overScroll = physics.applyBoundaryConditions(this, newPixels);
-    final double actualNewPixels = newPixels - overScroll;
+    final double overscroll = physics.applyBoundaryConditions(this, newPixels);
+    final double actualNewPixels = newPixels - overscroll;
     if (actualNewPixels != oldPixels) {
       forcePixels(actualNewPixels);
-      didUpdateScrollPositionBy(pixels - oldPixels);
+      didUpdateScrollPositionBy(actualNewPixels - oldPixels);
     }
-    if (overScroll != 0.0) {
-      didOverscrollBy(overScroll);
-      return overScroll;
+    if (overscroll != 0.0) {
+      didOverscrollBy(overscroll);
+      return overscroll;
     }
     return 0.0;
   }
