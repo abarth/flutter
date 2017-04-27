@@ -155,6 +155,7 @@ class ScrollController extends ChangeNotifier {
       context: context,
       initialPixels: initialScrollOffset,
       oldPosition: oldPosition,
+      debugLabel: debugLabel,
     );
   }
 

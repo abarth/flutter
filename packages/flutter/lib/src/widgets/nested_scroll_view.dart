@@ -74,28 +74,56 @@ class NestedScrollView extends StatefulWidget {
   _NestedScrollViewState createState() => new _NestedScrollViewState();
 }
 
-class _NestedScrollViewState extends State<NestedScrollView> implements ScrollActivityDelegate {
+class _NestedScrollViewState extends State<NestedScrollView> {
+  _NestedScrollCoorindator _coordinator;
+
   @override
   void initState() {
     super.initState();
-    _outerController = new _NestedScrollController(this, debugLabel: 'outer');
-    _innerController = new _NestedScrollController(this, debugLabel: 'inner');
+    _coordinator = new _NestedScrollCoorindator(context, widget.initialScrollOffset);
   }
 
-  ScrollController get outerController => _outerController;
-  _NestedScrollController _outerController;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _coordinator.updateParent();
+  }
 
-  @protected
+  @override
+  void dispose() {
+    _coordinator.dispose();
+    _coordinator = null;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return new CustomScrollView(
+      scrollDirection: widget.scrollDirection,
+      reverse: widget.reverse,
+      physics: new ClampingScrollPhysics(parent: widget.physics),
+      controller: _coordinator._outerController,
+      slivers: widget.buildSlivers(context, _coordinator._innerController, _coordinator.hasScrolledBody),
+    );
+  }
+}
+
+class _NestedScrollCoorindator implements ScrollActivityDelegate {
+  _NestedScrollCoorindator(this._context, double initialScrollOffset) {
+    _outerController = new _NestedScrollController(this, initialScrollOffset: initialScrollOffset, debugLabel: 'outer');
+    _innerController = new _NestedScrollController(this, initialScrollOffset: initialScrollOffset, debugLabel: 'inner');
+  }
+
+  final BuildContext _context;
+  _NestedScrollController _outerController;
+  _NestedScrollController _innerController;
+
   _NestedScrollPosition get _outerPosition {
     if (!_outerController.hasClients)
       return null;
     return _outerController.nestedPositions.single;
   }
 
-  ScrollController get innerController => _innerController;
-  _NestedScrollController _innerController;
-
-  @protected
   Iterable<_NestedScrollPosition> get _innerPositions {
     return _innerController.nestedPositions;
   }
@@ -417,34 +445,16 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    updateParent();
-  }
-
   void updateParent() {
-    _outerPosition?.setParent(PrimaryScrollController.of(context));
+    _outerPosition?.setParent(PrimaryScrollController.of(_context));
   }
 
-  @override
+  @mustCallSuper
   void dispose() {
     _currentDrag?.dispose();
     _currentDrag = null;
     _outerController.dispose();
     _innerController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return new CustomScrollView(
-      scrollDirection: widget.scrollDirection,
-      reverse: widget.reverse,
-      physics: new ClampingScrollPhysics(parent: widget.physics),
-      controller: _outerController,
-      slivers: widget.buildSlivers(context, _innerController, hasScrolledBody),
-    );
   }
 }
 
@@ -474,21 +484,24 @@ class _NestedScrollMetrics extends FixedScrollMetrics {
 }
 
 class _NestedScrollController extends ScrollController {
-  _NestedScrollController(this.owner, { String debugLabel })
-    : super(debugLabel: debugLabel);
+  _NestedScrollController(this.owner, {
+    double initialScrollOffset: 0.0,
+    String debugLabel,
+  }) : super(initialScrollOffset: initialScrollOffset, debugLabel: debugLabel);
 
-  final _NestedScrollViewState owner;
+  final _NestedScrollCoorindator owner;
 
   @override
   ScrollPosition createScrollPosition(
     ScrollPhysics physics,
-    ScrollContext state,
+    ScrollContext context,
     ScrollPosition oldPosition,
   ) {
     return new _NestedScrollPosition(
       owner: owner,
       physics: physics,
-      context: state,
+      context: context,
+      initialPixels: initialScrollOffset,
       oldPosition: oldPosition,
       debugLabel: debugLabel,
     );
@@ -511,6 +524,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   _NestedScrollPosition({
     @required ScrollPhysics physics,
     @required ScrollContext context,
+    double initialPixels: 0.0,
     ScrollPosition oldPosition,
     String debugLabel,
     @required this.owner,
@@ -520,14 +534,14 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     oldPosition: oldPosition,
     debugLabel: debugLabel,
   ) {
-    if (pixels == null)
-      correctPixels(owner.widget.initialScrollOffset);
+    if (pixels == null && initialPixels != null)
+      correctPixels(initialPixels);
     if (activity == null)
       goIdle();
     assert(activity != null);
   }
 
-  final _NestedScrollViewState owner;
+  final _NestedScrollCoorindator owner;
 
   TickerProvider get vsync => context.vsync;
 
@@ -720,7 +734,7 @@ class _NestedInnerBallisticScrollActivity extends BallisticScrollActivity {
     TickerProvider vsync,
   ) : super(position, simulation, vsync);
 
-  final _NestedScrollViewState owner;
+  final _NestedScrollCoorindator owner;
 
   @override
   _NestedScrollPosition get delegate => super.delegate;
@@ -755,7 +769,7 @@ class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
     assert(maxRange > minRange);
   }
 
-  final _NestedScrollViewState owner;
+  final _NestedScrollCoorindator owner;
 
   final double minRange;
   final double maxRange;

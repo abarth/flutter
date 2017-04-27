@@ -51,7 +51,8 @@ class ScrollPositionWithSingleContext extends ScrollPosition implements ScrollAc
     @required ScrollContext context,
     double initialPixels: 0.0,
     ScrollPosition oldPosition,
-  }) : super(physics: physics, context: context, oldPosition: oldPosition) {
+    String debugLabel,
+  }) : super(physics: physics, context: context, oldPosition: oldPosition, debugLabel: debugLabel) {
     // If oldPosition is not null, the superclass will first call absorb(),
     // which may set _pixels and _activity.
     if (pixels == null && initialPixels != null)
