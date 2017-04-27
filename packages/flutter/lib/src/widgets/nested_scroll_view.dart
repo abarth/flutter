@@ -75,7 +75,7 @@ class NestedScrollView extends StatefulWidget {
   _NestedScrollViewState createState() => new _NestedScrollViewState();
 }
 
-class _NestedScrollViewState extends State<NestedScrollView> {
+class _NestedScrollViewState extends State<NestedScrollView> implements ScrollActivityDelegate {
   @override
   void initState() {
     super.initState();
@@ -122,7 +122,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       position._didUpdateScrollDirection(value);
   }
 
-  _NestedDrag _currentDrag;
+  ScrollDragController _currentDrag;
 
   void beginActivity(ScrollActivity newOuterActivity, _NestedScrollActivityGetter newInnerActivityCallback) {
     _outerPosition.beginActivity(newOuterActivity);
@@ -132,12 +132,16 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       position.beginActivity(newInnerActivity);
       scrolling = scrolling && newInnerActivity.isScrolling;
     }
-    if (_currentDrag != null)
-      _currentDrag.dispose();
+    _currentDrag?.dispose();
+    _currentDrag = null;
     if (!scrolling)
       updateUserScrollDirection(ScrollDirection.idle);
   }
 
+  @override
+  AxisDirection get axisDirection => _outerPosition.axisDirection;
+
+  @override
   void goIdle() {
     beginActivity(
       new IdleScrollActivity(_outerPosition),
@@ -145,6 +149,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
     );
   }
 
+  @override
   void goBallistic(double velocity) {
     beginActivity(
       createOuterBallisticScrollActivity(velocity),
@@ -346,6 +351,12 @@ class _NestedScrollViewState extends State<NestedScrollView> {
     goBallistic(0.0);
   }
 
+  @override
+  double setPixels(double newPixels) {
+    assert(false);
+    return 0.0;
+  }
+
   void didTouch() {
     _outerPosition.propagateTouched();
     for (_NestedScrollPosition position in _innerPositions)
@@ -353,24 +364,27 @@ class _NestedScrollViewState extends State<NestedScrollView> {
   }
 
   Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) {
-    final _NestedDrag result = new _NestedDrag(
+    final ScrollDragController drag = new ScrollDragController(
       this,
       details,
       dragCancelCallback,
     );
     beginActivity(
-      new _NestedScrollDragActivity(_outerPosition, result),
-      (_NestedScrollPosition position) => new _NestedScrollDragActivity(position, result),
+      new DragScrollActivity(_outerPosition, drag),
+      (_NestedScrollPosition position) => new DragScrollActivity(position, drag),
     );
-    _currentDrag = result;
-    return result;
+    assert(_currentDrag == null);
+    _currentDrag = drag;
+    return drag;
   }
 
-  void applyUserOffset(double offset) {
-    assert(offset != 0.0);
+  @override
+  void applyUserOffset(double delta) {
+    updateUserScrollDirection(delta > 0.0 ? ScrollDirection.forward : ScrollDirection.reverse);
+    assert(delta != 0.0);
     if (_innerPositions.isEmpty) {
-      _outerPosition.applyFullDragUpdate(-offset);
-    } else if (offset > 0.0) {
+      _outerPosition.applyFullDragUpdate(delta);
+    } else if (delta < 0.0) {
       // dragging "up"
       // TODO(ianh): prioritize first getting rid of overscroll, and then the
       // outer view, so that the app bar will scroll out of the way asap.
@@ -378,31 +392,29 @@ class _NestedScrollViewState extends State<NestedScrollView> {
       // weird on iOS if you fling down then up. The problem is it's not at all
       // clear what this should do when you have multiple inner positions at
       // different levels of overscroll.
-      final double innerOffset = _outerPosition.applyClampedDragUpdate(offset);
-      if (innerOffset != 0.0) {
+      final double innerDelta = _outerPosition.applyClampedDragUpdate(delta);
+      if (innerDelta != 0.0) {
         for (_NestedScrollPosition position in _innerPositions)
-          position.applyFullDragUpdate(-innerOffset);
+          position.applyFullDragUpdate(innerDelta);
       }
     } else {
-      // dragging "down" - offsets are negative
+      // dragging "down" - delta is positive
       // prioritize the inner views, so that the inner content will move before the app bar grows
-      double minimumRemainingOffset = 0.0; // it will go negative if it changes
-      final List<double> remainingOffsets = <double>[];
+      double outerDelta = 0.0; // it will go positive if it changes
+      final List<double> overscrolls = <double>[];
       final List<_NestedScrollPosition> innerPositions = _innerPositions.toList();
       for (_NestedScrollPosition position in innerPositions) {
-        final double thisRemainingOffset = position.applyClampedDragUpdate(offset);
-        minimumRemainingOffset = math.min(minimumRemainingOffset, thisRemainingOffset);
-        remainingOffsets.add(thisRemainingOffset);
+        final double overscroll = position.applyClampedDragUpdate(delta);
+        outerDelta = math.max(outerDelta, overscroll);
+        overscrolls.add(overscroll);
       }
-      if (minimumRemainingOffset != 0.0) {
-        final double outerRemainingOffset = _outerPosition.applyClampedDragUpdate(minimumRemainingOffset);
-        minimumRemainingOffset = minimumRemainingOffset - outerRemainingOffset;
-      }
+      if (outerDelta != 0.0)
+        outerDelta -= _outerPosition.applyClampedDragUpdate(outerDelta);
       // now deal with any overscroll
-      for (_NestedScrollPosition position in innerPositions) {
-        final double thisRemainingOffset = remainingOffsets.removeAt(0) - minimumRemainingOffset;
-        if (thisRemainingOffset < 0.0)
-          position.applyFullDragUpdate(-thisRemainingOffset);
+      for (int i = 0; i < innerPositions.length; ++i) {
+        final double remainingDelta = overscrolls[i] - outerDelta;
+        if (remainingDelta > 0.0)
+          innerPositions[i].applyFullDragUpdate(remainingDelta);
       }
     }
   }
@@ -420,6 +432,7 @@ class _NestedScrollViewState extends State<NestedScrollView> {
   @override
   void dispose() {
     _currentDrag?.dispose();
+    _currentDrag = null;
     _outerController.dispose();
     _innerController.dispose();
     super.dispose();
@@ -561,25 +574,27 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
       setIgnorePointer(shouldIgnorePointer);
   }
 
+  // Returns the amount of delta that was not used.
   double applyClampedDragUpdate(double delta) {
     assert(delta != 0.0);
-    final double min = delta > 0.0 ? -double.INFINITY : minScrollExtent;
-    final double max = delta < 0.0 ? double.INFINITY : maxScrollExtent;
+    final double min = delta < 0.0 ? -double.INFINITY : minScrollExtent;
+    final double max = delta > 0.0 ? double.INFINITY : maxScrollExtent;
     final double oldPixels = pixels;
-    final double newPixels = (pixels + delta).clamp(min, max);
+    final double newPixels = (pixels - delta).clamp(min, max);
     final double clampedDelta = newPixels - pixels;
     if (clampedDelta == 0.0)
       return delta;
     final double overscroll = physics.applyBoundaryConditions(this, newPixels);
     final double actualNewPixels = newPixels - overscroll;
-    final double actualDelta = actualNewPixels - oldPixels;
-    if (actualDelta != 0.0) {
+    final double offset = actualNewPixels - oldPixels;
+    if (offset != 0.0) {
       forcePixels(actualNewPixels);
-      didUpdateScrollPositionBy(actualDelta);
+      didUpdateScrollPositionBy(offset);
     }
-    return delta - actualDelta;
+    return delta + offset;
   }
 
+  // Returns the overscroll.
   double applyFullDragUpdate(double delta) {
     assert(delta != 0.0);
     final double oldPixels = pixels;
@@ -781,107 +796,6 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     if (debugLabel != null)
       description.add('debug label: $debugLabel');
   }
-}
-
-class _NestedDrag implements Drag {
-  // TODO(ianh): There's a lot of code duplication with DragScrollActivity here.
-  _NestedDrag(
-    this.owner,
-    DragStartDetails details,
-    this.onDragCanceled,
-  ) : _lastDetails = details;
-
-  final _NestedScrollViewState owner;
-
-  final VoidCallback onDragCanceled;
-
-  dynamic get lastDetails => _lastDetails;
-  dynamic _lastDetails;
-
-  bool get _reversed => axisDirectionIsReversed(owner._outerPosition.axisDirection);
-
-  @override
-  void update(DragUpdateDetails details) {
-    assert(details.primaryDelta != null);
-    _lastDetails = details;
-    double offset = details.primaryDelta;
-    if (offset == 0.0)
-      return;
-    if (_reversed) // e.g. an AxisDirection.up scrollable
-      offset = -offset;
-    owner.updateUserScrollDirection(offset > 0.0 ? ScrollDirection.forward : ScrollDirection.reverse);
-    owner.applyUserOffset(-offset);
-  }
-
-  @override
-  void end(DragEndDetails details) {
-    assert(details.primaryVelocity != null);
-    double velocity = details.primaryVelocity;
-    if (_reversed) // e.g. an AxisDirection.up scrollable
-      velocity = -velocity;
-    _lastDetails = details;
-    // We negate the velocity here because if the touch is moving downwards,
-    // the scroll has to move upwards. It's the same reason that update()
-    // above negates the delta before applying it to the scroll offset.
-    owner.goBallistic(-velocity);
-  }
-
-  @override
-  void cancel() {
-    owner.goBallistic(0.0);
-  }
-
-  void touched() { }
-
-  void dispose() {
-    _lastDetails = null;
-    if (onDragCanceled != null)
-      onDragCanceled();
-  }
-}
-
-class _NestedScrollDragActivity extends ScrollActivity {
-  // TODO(ianh): There's a lot of code duplication with DragScrollActivity here.
-  _NestedScrollDragActivity(
-    ScrollActivityDelegate delegate,
-    this.coordinator,
-  ) : super(delegate);
-
-  final _NestedDrag coordinator;
-
-  @override
-  void dispatchScrollStartNotification(ScrollMetrics metrics, BuildContext context) {
-    assert(coordinator.lastDetails is DragStartDetails);
-    new ScrollStartNotification(metrics: metrics, context: context, dragDetails: coordinator.lastDetails).dispatch(context);
-  }
-
-  @override
-  void dispatchScrollUpdateNotification(ScrollMetrics metrics, BuildContext context, double scrollDelta) {
-    assert(coordinator.lastDetails is DragUpdateDetails);
-    new ScrollUpdateNotification(metrics: metrics, context: context, scrollDelta: scrollDelta, dragDetails: coordinator.lastDetails).dispatch(context);
-  }
-
-  @override
-  void dispatchOverscrollNotification(ScrollMetrics metrics, BuildContext context, double overscroll) {
-    assert(coordinator.lastDetails is DragUpdateDetails);
-    new OverscrollNotification(metrics: metrics, context: context, overscroll: overscroll, dragDetails: coordinator.lastDetails).dispatch(context);
-  }
-
-  @override
-  void dispatchScrollEndNotification(ScrollMetrics metrics, BuildContext context) {
-    // We might not have DragEndDetails yet if we're being called from beginActivity.
-    new ScrollEndNotification(
-      metrics: metrics,
-      context: context,
-      dragDetails: coordinator.lastDetails is DragEndDetails ? coordinator.lastDetails : null
-    ).dispatch(context);
-  }
-
-  @override
-  bool get shouldIgnorePointer => true;
-
-  @override
-  bool get isScrolling => true;
 }
 
 enum _NestedBallisticScrollActivityMode { outer, inner, independent }
