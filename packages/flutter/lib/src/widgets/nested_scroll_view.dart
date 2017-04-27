@@ -24,8 +24,6 @@ import 'scroll_view.dart';
 import 'sliver.dart';
 import 'ticker_provider.dart';
 
-typedef ScrollActivity _NestedScrollActivityGetter(_NestedScrollPosition position);
-
 typedef List<Widget> NestedScrollViewOuterSliversBuilder(BuildContext context, bool innerBoxIsScrolled);
 
 class NestedScrollView extends StatefulWidget {
@@ -108,6 +106,33 @@ class _NestedScrollViewState extends State<NestedScrollView> {
   }
 }
 
+class _NestedScrollMetrics extends FixedScrollMetrics {
+  _NestedScrollMetrics({
+    @required double minScrollExtent,
+    @required double maxScrollExtent,
+    @required double pixels,
+    @required double viewportDimension,
+    @required AxisDirection axisDirection,
+    @required this.minRange,
+    @required this.maxRange,
+    @required this.correctionOffset,
+  }) : super(
+    minScrollExtent: minScrollExtent,
+    maxScrollExtent: maxScrollExtent,
+    pixels: pixels,
+    viewportDimension: viewportDimension,
+    axisDirection: axisDirection,
+  );
+
+  final double minRange;
+
+  final double maxRange;
+
+  final double correctionOffset;
+}
+
+typedef ScrollActivity _NestedScrollActivityGetter(_NestedScrollPosition position);
+
 class _NestedScrollCoorindator implements ScrollActivityDelegate {
   _NestedScrollCoorindator(this._context, double initialScrollOffset) {
     _outerController = new _NestedScrollController(this, initialScrollOffset: initialScrollOffset, debugLabel: 'outer');
@@ -151,11 +176,11 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
 
   ScrollDragController _currentDrag;
 
-  void beginActivity(ScrollActivity newOuterActivity, _NestedScrollActivityGetter newInnerActivityCallback) {
+  void beginActivity(ScrollActivity newOuterActivity, _NestedScrollActivityGetter innerActivityGetter) {
     _outerPosition.beginActivity(newOuterActivity);
     bool scrolling = newOuterActivity.isScrolling;
     for (_NestedScrollPosition position in _innerPositions) {
-      final ScrollActivity newInnerActivity = newInnerActivityCallback(position);
+      final ScrollActivity newInnerActivity = innerActivityGetter(position);
       position.beginActivity(newInnerActivity);
       scrolling = scrolling && newInnerActivity.isScrolling;
     }
@@ -168,12 +193,13 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
   @override
   AxisDirection get axisDirection => _outerPosition.axisDirection;
 
+  static IdleScrollActivity _createIdleScrollActivity(_NestedScrollPosition position) {
+    return new IdleScrollActivity(position);
+  }
+
   @override
   void goIdle() {
-    beginActivity(
-      new IdleScrollActivity(_outerPosition),
-      (_NestedScrollPosition position) => new IdleScrollActivity(position),
-    );
+    beginActivity(_createIdleScrollActivity(_outerPosition), _createIdleScrollActivity);
   }
 
   @override
@@ -218,7 +244,7 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
 
     if (innerPosition == null) {
       // It's either just us or a velocity=0 situation.
-      return _outerPosition._createBallisticScrollActivity(
+      return _outerPosition.createBallisticScrollActivity(
         _outerPosition.physics.createBallisticSimulation(_outerPosition, velocity),
         mode: _NestedBallisticScrollActivityMode.independent,
       );
@@ -226,18 +252,16 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
 
     final _NestedScrollMetrics metrics = _getMetrics(innerPosition, velocity);
 
-    return _outerPosition._createBallisticScrollActivity(
+    return _outerPosition.createBallisticScrollActivity(
       _outerPosition.physics.createBallisticSimulation(metrics, velocity),
       mode: _NestedBallisticScrollActivityMode.outer,
-      minRange: metrics.minRange,
-      maxRange: metrics.maxRange,
-      correctionOffset: metrics.correctionOffset,
+      metrics: metrics,
     );
   }
 
   @protected
   ScrollActivity createInnerBallisticScrollActivity(_NestedScrollPosition position, double velocity) {
-    return position._createBallisticScrollActivity(
+    return position.createBallisticScrollActivity(
       position.physics.createBallisticSimulation(
         velocity == 0 ? position : _getMetrics(position, velocity),
         velocity,
@@ -348,7 +372,7 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
     @required Duration duration,
     @required Curve curve,
   }) {
-    final DrivenScrollActivity outerActivity = _outerPosition.createAnimateScrollActivity(
+    final DrivenScrollActivity outerActivity = _outerPosition.createDrivenScrollActivity(
       nestOffset(to, _outerPosition),
       duration,
       curve,
@@ -357,7 +381,7 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
     beginActivity(
       outerActivity,
       (_NestedScrollPosition position) {
-        final DrivenScrollActivity innerActivity = position.createAnimateScrollActivity(
+        final DrivenScrollActivity innerActivity = position.createDrivenScrollActivity(
           nestOffset(to, position),
           duration,
           curve,
@@ -371,9 +395,9 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
 
   void jumpTo(double to) {
     goIdle();
-    _outerPosition._localJumpTo(nestOffset(to, _outerPosition));
+    _outerPosition.localJumpTo(nestOffset(to, _outerPosition));
     for (_NestedScrollPosition position in _innerPositions)
-      position._localJumpTo(nestOffset(to, position));
+      position.localJumpTo(nestOffset(to, position));
     goBallistic(0.0);
   }
 
@@ -456,31 +480,6 @@ class _NestedScrollCoorindator implements ScrollActivityDelegate {
     _outerController.dispose();
     _innerController.dispose();
   }
-}
-
-class _NestedScrollMetrics extends FixedScrollMetrics {
-  _NestedScrollMetrics({
-    @required double minScrollExtent,
-    @required double maxScrollExtent,
-    @required double pixels,
-    @required double viewportDimension,
-    @required AxisDirection axisDirection,
-    @required this.minRange,
-    @required this.maxRange,
-    @required this.correctionOffset,
-  }) : super(
-    minScrollExtent: minScrollExtent,
-    maxScrollExtent: maxScrollExtent,
-    pixels: pixels,
-    viewportDimension: viewportDimension,
-    axisDirection: axisDirection,
-  );
-
-  final double minRange;
-
-  final double maxRange;
-
-  final double correctionOffset;
 }
 
 class _NestedScrollController extends ScrollController {
@@ -605,7 +604,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   @override
   ScrollDirection get userScrollDirection => coorindator.userScrollDirection;
 
-  DrivenScrollActivity createAnimateScrollActivity(double to, Duration duration, Curve curve) {
+  DrivenScrollActivity createDrivenScrollActivity(double to, Duration duration, Curve curve) {
     return new DrivenScrollActivity(
       this,
       from: pixels,
@@ -634,29 +633,25 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     Simulation simulation;
     if (velocity != 0.0 || outOfRange)
       simulation = physics.createBallisticSimulation(this, velocity);
-    beginActivity(_createBallisticScrollActivity(
+    beginActivity(createBallisticScrollActivity(
       simulation,
       mode: _NestedBallisticScrollActivityMode.independent,
     ));
   }
 
-  ScrollActivity _createBallisticScrollActivity(Simulation simulation, {
+  ScrollActivity createBallisticScrollActivity(Simulation simulation, {
     @required _NestedBallisticScrollActivityMode mode,
-    double minRange,
-    double maxRange,
-    double correctionOffset,
+    _NestedScrollMetrics metrics,
   }) {
     if (simulation == null)
       return new IdleScrollActivity(this);
     assert(mode != null);
     switch (mode) {
       case _NestedBallisticScrollActivityMode.outer:
-        assert(minRange != null);
-        assert(maxRange != null);
-        assert(correctionOffset != null);
-        if (minRange == maxRange)
+        assert(metrics != null);
+        if (metrics.minRange == metrics.maxRange)
           return new IdleScrollActivity(this);
-        return new _NestedOuterBallisticScrollActivity(coorindator, this, minRange, maxRange, correctionOffset, simulation, context.vsync);
+        return new _NestedOuterBallisticScrollActivity(coorindator, this, metrics, simulation, context.vsync);
       case _NestedBallisticScrollActivityMode.inner:
         return new _NestedInnerBallisticScrollActivity(coorindator, this, simulation, context.vsync);
       case _NestedBallisticScrollActivityMode.independent:
@@ -683,7 +678,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     assert(false);
   }
 
-  void _localJumpTo(double value) {
+  void localJumpTo(double value) {
     if (pixels != value) {
       final double oldPixels = pixels;
       forcePixels(value);
@@ -759,21 +754,16 @@ class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
   _NestedOuterBallisticScrollActivity(
     this.coorindator,
     _NestedScrollPosition position,
-    this.minRange,
-    this.maxRange,
-    this.correctionOffset,
+    this.metrics,
     Simulation simulation,
     TickerProvider vsync,
   ) : super(position, simulation, vsync) {
-    assert(minRange != maxRange);
-    assert(maxRange > minRange);
+    assert(metrics.minRange != metrics.maxRange);
+    assert(metrics.maxRange > metrics.minRange);
   }
 
   final _NestedScrollCoorindator coorindator;
-
-  final double minRange;
-  final double maxRange;
-  final double correctionOffset;
+  final _NestedScrollMetrics metrics;
 
   @override
   _NestedScrollPosition get delegate => super.delegate;
@@ -792,31 +782,31 @@ class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
   bool applyMoveTo(double value) {
     bool done = false;
     if (velocity > 0.0) {
-      if (value < minRange)
+      if (value < metrics.minRange)
         return true;
-      if (value > maxRange) {
-        value = maxRange;
+      if (value > metrics.maxRange) {
+        value = metrics.maxRange;
         done = true;
       }
     } else if (velocity < 0.0) {
       assert(velocity < 0.0);
-      if (value > maxRange)
+      if (value > metrics.maxRange)
         return true;
-      if (value < minRange) {
-        value = minRange;
+      if (value < metrics.minRange) {
+        value = metrics.minRange;
         done = true;
       }
     } else {
-      value = value.clamp(minRange, maxRange);
+      value = value.clamp(metrics.minRange, metrics.maxRange);
       done = true;
     }
-    final bool result = super.applyMoveTo(value + correctionOffset);
+    final bool result = super.applyMoveTo(value + metrics.correctionOffset);
     assert(result); // since we tried to pass an in-range value, it shouldn't ever overflow
     return !done;
   }
 
   @override
   String toString() {
-    return '$runtimeType($minRange .. $maxRange; correcting by $correctionOffset)';
+    return '$runtimeType(${metrics.minRange} .. ${metrics.maxRange}; correcting by ${metrics.correctionOffset})';
   }
 }
