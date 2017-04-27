@@ -18,7 +18,6 @@ import 'scroll_activity.dart';
 import 'scroll_context.dart';
 import 'scroll_controller.dart';
 import 'scroll_metrics.dart';
-import 'scroll_notification.dart';
 import 'scroll_physics.dart';
 import 'scroll_position.dart';
 import 'scroll_view.dart';
@@ -117,9 +116,9 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
     if (userScrollDirection == value)
       return;
     _userScrollDirection = value;
-    _outerPosition._didUpdateScrollDirection(value);
+    _outerPosition.didUpdateScrollDirection(value);
     for (_NestedScrollPosition position in _innerPositions)
-      position._didUpdateScrollDirection(value);
+      position.didUpdateScrollDirection(value);
   }
 
   ScrollDragController _currentDrag;
@@ -152,13 +151,12 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
   @override
   void goBallistic(double velocity) {
     beginActivity(
-      createOuterBallisticScrollActivity(velocity),
-      (_NestedScrollPosition position) => createInnerBallisticScrollActivity(position, velocity),
+      _createOuterBallisticScrollActivity(velocity),
+      (_NestedScrollPosition position) => _createInnerBallisticScrollActivity(position, velocity),
     );
   }
 
-  @protected
-  ScrollActivity createOuterBallisticScrollActivity(double velocity) {
+  ScrollActivity _createOuterBallisticScrollActivity(double velocity) {
     // TODO(ianh): Refactor so this doesn't need to poke at the internals of the
     // other classes here (e.g. calling through _outerPosition.physics)
 
@@ -210,7 +208,7 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
   }
 
   @protected
-  ScrollActivity createInnerBallisticScrollActivity(_NestedScrollPosition position, double velocity) {
+  ScrollActivity _createInnerBallisticScrollActivity(_NestedScrollPosition position, double velocity) {
     return position._createBallisticScrollActivity(
       position.physics.createBallisticSimulation(
         velocity == 0 ? position : _computeSituationReport(position, velocity),
@@ -519,24 +517,20 @@ class _NestedScrollController extends ScrollController {
 
 class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDelegate {
   _NestedScrollPosition({
-    this.owner,
-    this.context,
-    this.debugLabel,
-    ScrollPhysics physics,
+    @required ScrollPhysics physics,
+    @required ScrollContext context,
     ScrollPosition oldPosition,
-  }) : super(physics: physics, oldPosition: oldPosition) {
-    assert(physics != null);
-    assert(context != null);
+    @required this.owner,
+    this.debugLabel,
+  }) : super(physics: physics, context: context, oldPosition: oldPosition) {
     if (pixels == null)
       correctPixels(owner.widget.initialScrollOffset);
-    if (_activity == null)
+    if (activity == null)
       goIdle();
-    assert(_activity != null);
+    assert(activity != null);
   }
 
   final _NestedScrollViewState owner;
-
-  final ScrollContext context;
 
   final String debugLabel;
 
@@ -554,27 +548,9 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   AxisDirection get axisDirection => context.axisDirection;
 
   @override
-  void absorb(ScrollPosition otherPosition) {
-    if (otherPosition is! _NestedScrollPosition) {
-      super.absorb(otherPosition);
-      return;
-    }
-    final _NestedScrollPosition other = otherPosition;
-    assert(other != this);
-    assert(other.context == context);
-    // TODO(ianh): Code duplication with ScrollIndependentPosition
+  void absorb(ScrollPosition other) {
     super.absorb(other);
-    final bool oldIgnorePointer = shouldIgnorePointer;
-    assert(_activity == null);
-    assert(other._activity != null);
-    other._activity.updateDelegate(this);
-    _activity = other._activity;
-    other._activity = null;
-    if (other.runtimeType != runtimeType)
-      _activity.resetActivity();
-    // TODO(ianh): Have _NestedScrollViewState repropagate its shouldIgnorePointer
-    if (oldIgnorePointer != shouldIgnorePointer)
-      setIgnorePointer(shouldIgnorePointer);
+    activity.updateDelegate(this);
   }
 
   // Returns the amount of delta that was not used.
@@ -619,30 +595,6 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
 
   @override
   ScrollDirection get userScrollDirection => owner.userScrollDirection;
-
-  ScrollActivity _activity;
-
-  void beginActivity(ScrollActivity newActivity) {
-    // TODO(ianh): there's code duplication here. See ScrollIndependentPosition.
-    assert(newActivity != null);
-    assert(newActivity.delegate == this);
-    bool wasScrolling, oldIgnorePointer;
-    if (_activity != null) {
-      oldIgnorePointer = _activity.shouldIgnorePointer;
-      wasScrolling = _activity.isScrolling;
-      if (wasScrolling && !newActivity.isScrolling)
-        _didEndScroll();
-      _activity.dispose();
-    } else {
-      oldIgnorePointer = false;
-      wasScrolling = false;
-    }
-    _activity = newActivity;
-    if (oldIgnorePointer != shouldIgnorePointer)
-      context.setIgnorePointer(shouldIgnorePointer);
-    if (!wasScrolling && _activity.isScrolling)
-      _didStartScroll();
-  }
 
   DrivenScrollActivity createAnimateScrollActivity(double to, Duration duration, Curve curve) {
     return new DrivenScrollActivity(
@@ -726,15 +678,15 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     if (pixels != value) {
       final double oldPixels = pixels;
       forcePixels(value);
-      _didStartScroll();
+      didStartScroll();
       didUpdateScrollPositionBy(pixels - oldPixels);
-      _didEndScroll();
+      didEndScroll();
     }
   }
 
   @override
   void applyNewDimensions() {
-    _activity.applyNewDimensions();
+    super.applyNewDimensions();
     owner.updateCanDrag();
   }
 
@@ -748,7 +700,7 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   }
 
   void _propagateTouched() {
-    _activity.didTouch();
+    activity.didTouch();
   }
 
   @override
@@ -756,39 +708,8 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     return owner.drag(details, dragCancelCallback);
   }
 
-  void _didStartScroll() {
-    _activity.dispatchScrollStartNotification(cloneMetrics(), context.notificationContext);
-  }
-
-  @override
-  void didUpdateScrollPositionBy(double delta) {
-    _activity.dispatchScrollUpdateNotification(cloneMetrics(), context.notificationContext, delta);
-  }
-
-  void _didEndScroll() {
-    _activity.dispatchScrollEndNotification(cloneMetrics(), context.notificationContext);
-  }
-
-  @override
-  void didOverscrollBy(double value) {
-    assert(_activity.isScrolling);
-    _activity.dispatchOverscrollNotification(cloneMetrics(), context.notificationContext, value);
-  }
-
-  void _didUpdateScrollDirection(ScrollDirection direction) {
-    new UserScrollNotification(metrics: cloneMetrics(), context: context.notificationContext, direction: direction)
-      .dispatch(context.notificationContext);
-  }
-
-  bool get shouldIgnorePointer => _activity?.shouldIgnorePointer;
-
-  void setIgnorePointer(bool value) {
-    context.setIgnorePointer(value);
-  }
-
   @override
   void dispose() {
-    _activity?.dispose();
     _parent?.detach(this);
     super.dispose();
   }
@@ -818,12 +739,12 @@ class _NestedInnerBallisticScrollActivity extends BallisticScrollActivity {
 
   @override
   void resetActivity() {
-    delegate.beginActivity(owner.createInnerBallisticScrollActivity(delegate, velocity));
+    delegate.beginActivity(owner._createInnerBallisticScrollActivity(delegate, velocity));
   }
 
   @override
   void applyNewDimensions() {
-    delegate.beginActivity(owner.createInnerBallisticScrollActivity(delegate, velocity));
+    delegate.beginActivity(owner._createInnerBallisticScrollActivity(delegate, velocity));
   }
 
   @override
@@ -857,12 +778,12 @@ class _NestedOuterBallisticScrollActivity extends BallisticScrollActivity {
 
   @override
   void resetActivity() {
-    delegate.beginActivity(owner.createOuterBallisticScrollActivity(velocity));
+    delegate.beginActivity(owner._createOuterBallisticScrollActivity(velocity));
   }
 
   @override
   void applyNewDimensions() {
-    delegate.beginActivity(owner.createOuterBallisticScrollActivity(velocity));
+    delegate.beginActivity(owner._createOuterBallisticScrollActivity(velocity));
   }
 
   @override
