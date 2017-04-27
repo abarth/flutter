@@ -196,14 +196,14 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
       );
     }
 
-    final _NestedScrollMetrics situationReport = _computeSituationReport(innerPosition, velocity);
+    final _NestedScrollMetrics metrics = _getMetrics(innerPosition, velocity);
 
     return _outerPosition._createBallisticScrollActivity(
-      _outerPosition.physics.createBallisticSimulation(situationReport, velocity),
+      _outerPosition.physics.createBallisticSimulation(metrics, velocity),
       mode: _NestedBallisticScrollActivityMode.outer,
-      minRange: situationReport.minRange,
-      maxRange: situationReport.maxRange,
-      correctionOffset: situationReport.correctionOffset,
+      minRange: metrics.minRange,
+      maxRange: metrics.maxRange,
+      correctionOffset: metrics.correctionOffset,
     );
   }
 
@@ -211,14 +211,14 @@ class _NestedScrollViewState extends State<NestedScrollView> implements ScrollAc
   ScrollActivity _createInnerBallisticScrollActivity(_NestedScrollPosition position, double velocity) {
     return position._createBallisticScrollActivity(
       position.physics.createBallisticSimulation(
-        velocity == 0 ? position : _computeSituationReport(position, velocity),
+        velocity == 0 ? position : _getMetrics(position, velocity),
         velocity,
       ),
       mode: _NestedBallisticScrollActivityMode.inner,
     );
   }
 
-  _NestedScrollMetrics _computeSituationReport(_NestedScrollPosition innerPosition, double velocity) {
+  _NestedScrollMetrics _getMetrics(_NestedScrollPosition innerPosition, double velocity) {
     assert(innerPosition != null);
     double pixels, minRange, maxRange, correctionOffset, extra;
     if (innerPosition.pixels == innerPosition.minScrollExtent) {
@@ -474,11 +474,10 @@ class _NestedScrollMetrics extends FixedScrollMetrics {
 }
 
 class _NestedScrollController extends ScrollController {
-  _NestedScrollController(this.owner, { this.debugLabel });
+  _NestedScrollController(this.owner, { String debugLabel })
+    : super(debugLabel: debugLabel);
 
   final _NestedScrollViewState owner;
-
-  final String debugLabel;
 
   @override
   ScrollPosition createScrollPosition(
@@ -506,13 +505,6 @@ class _NestedScrollController extends ScrollController {
   Iterable<_NestedScrollPosition> get nestedPositions sync* {
     yield* positions;
   }
-
-  @override
-  void debugFillDescription(List<String> description) {
-    super.debugFillDescription(description);
-    if (debugLabel != null)
-      description.add('debug label: $debugLabel');
-  }
 }
 
 class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDelegate {
@@ -520,9 +512,14 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
     @required ScrollPhysics physics,
     @required ScrollContext context,
     ScrollPosition oldPosition,
+    String debugLabel,
     @required this.owner,
-    this.debugLabel,
-  }) : super(physics: physics, context: context, oldPosition: oldPosition) {
+  }) : super(
+    physics: physics,
+    context: context,
+    oldPosition: oldPosition,
+    debugLabel: debugLabel,
+  ) {
     if (pixels == null)
       correctPixels(owner.widget.initialScrollOffset);
     if (activity == null)
@@ -531,8 +528,6 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   }
 
   final _NestedScrollViewState owner;
-
-  final String debugLabel;
 
   TickerProvider get vsync => context.vsync;
 
@@ -712,13 +707,6 @@ class _NestedScrollPosition extends ScrollPosition implements ScrollActivityDele
   void dispose() {
     _parent?.detach(this);
     super.dispose();
-  }
-
-  @override
-  void debugFillDescription(List<String> description) {
-    super.debugFillDescription(description);
-    if (debugLabel != null)
-      description.add('debug label: $debugLabel');
   }
 }
 

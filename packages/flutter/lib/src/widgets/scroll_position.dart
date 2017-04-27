@@ -23,6 +23,7 @@ abstract class ScrollPosition extends ViewportOffset with ScrollMetrics {
     @required this.physics,
     @required this.context,
     ScrollPosition oldPosition,
+    this.debugLabel,
   }) {
     assert(physics != null);
     assert(context != null);
@@ -33,6 +34,7 @@ abstract class ScrollPosition extends ViewportOffset with ScrollMetrics {
 
   final ScrollPhysics physics;
   final ScrollContext context;
+  final String debugLabel;
 
   @override
   double get minScrollExtent => _minScrollExtent;
@@ -374,6 +376,8 @@ abstract class ScrollPosition extends ViewportOffset with ScrollMetrics {
   @override
   void debugFillDescription(List<String> description) {
     super.debugFillDescription(description);
+    if (debugLabel != null)
+      description.add('debug label: $debugLabel');
     description.add('range: ${minScrollExtent?.toStringAsFixed(1)}..${maxScrollExtent?.toStringAsFixed(1)}');
     description.add('viewport: ${viewportDimension?.toStringAsFixed(1)}');
   }
